@@ -1,0 +1,126 @@
+type Character @node {
+  book1BetweennessCentrality: Float!
+  book1PageRank: Float!
+  book45PageRank: Float!
+  centrality: Float!
+  charactersInteracts: [Character!]!
+    @relationship(
+      type: "INTERACTS"
+      direction: IN
+      properties: "InteractsProperties"
+    )
+  charactersInteracts1: [Character!]!
+    @relationship(
+      type: "INTERACTS1"
+      direction: IN
+      properties: "Interacts1Properties"
+    )
+  charactersInteracts2: [Character!]!
+    @relationship(
+      type: "INTERACTS2"
+      direction: IN
+      properties: "Interacts2Properties"
+    )
+  charactersInteracts3: [Character!]!
+    @relationship(
+      type: "INTERACTS3"
+      direction: IN
+      properties: "Interacts3Properties"
+    )
+  charactersInteracts45: [Character!]!
+    @relationship(
+      type: "INTERACTS45"
+      direction: IN
+      properties: "Interacts45Properties"
+    )
+  community: BigInt!
+  degree: Float!
+  fastrf_embedding: [Float!]!
+  interacts1Characters: [Character!]!
+    @relationship(
+      type: "INTERACTS1"
+      direction: OUT
+      properties: "Interacts1Properties"
+    )
+  interacts2Characters: [Character!]!
+    @relationship(
+      type: "INTERACTS2"
+      direction: OUT
+      properties: "Interacts2Properties"
+    )
+  interacts3Characters: [Character!]!
+    @relationship(
+      type: "INTERACTS3"
+      direction: OUT
+      properties: "Interacts3Properties"
+    )
+  interacts45Characters: [Character!]!
+    @relationship(
+      type: "INTERACTS45"
+      direction: OUT
+      properties: "Interacts45Properties"
+    )
+  interactsCharacters: [Character!]!
+    @relationship(
+      type: "INTERACTS"
+      direction: OUT
+      properties: "InteractsProperties"
+    )
+  louvain: BigInt!
+  name: String!
+  pagerank: Float!
+}
+
+type Interacts1Properties @relationshipProperties {
+  book: BigInt!
+  weight: BigInt!
+}
+
+type Interacts2Properties @relationshipProperties {
+  book: BigInt!
+  weight: BigInt!
+}
+
+type Interacts3Properties @relationshipProperties {
+  book: BigInt!
+  weight: BigInt!
+}
+
+type Interacts45Properties @relationshipProperties {
+  book: BigInt!
+  weight: BigInt!
+}
+
+type InteractsProperties @relationshipProperties {
+  weight: BigInt!
+}
+
+type _Bloom_Perspective_ @node {
+  bloomHasSceneBloomSceneS: [_Bloom_Scene_!]!
+    @relationship(type: "_Bloom_HAS_SCENE_", direction: OUT)
+  data: String!
+  id: String!
+  name: String!
+  roles: [String!]!
+  version: String!
+}
+
+type _Bloom_Scene_ @node {
+  bloomPerspectiveSBloomHasScene: [_Bloom_Perspective_!]!
+    @relationship(type: "_Bloom_HAS_SCENE_", direction: IN)
+  createdAt: BigInt!
+  createdBy: String!
+  filters: String!
+  gds: String!
+  id: String!
+  lastModified: BigInt!
+  name: String!
+  nodes: String!
+  numOfNodes: BigInt!
+  numOfRels: BigInt!
+  relationships: String!
+  roles: [String!]!
+  style: String!
+  version: String!
+  visualisation: String!
+}

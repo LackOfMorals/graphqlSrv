@@ -9,6 +9,7 @@ const config = {
     neo4jUri: process.env.NEO4J_URI || `bolt://localhost:7687`,
     neo4jUser: process.env.NEO4J_USER || 'neo4j',
     neo4jPassword: process.env.NEO4J_PASSWORD || 'password',
+    neo4jDatabase: process.env.NEO4J_DATABASE || 'neo4j',
     cacheDir: '/Users/jgiffard/Projects/graphqlSrv/.neo4j-schema-cache',
 };
 
@@ -21,6 +22,11 @@ async function loadTypeDefs() {
 async function runSrvr() {
     console.log('🚀 Yoga server with Neo4j library');
     console.log('======================================\n');
+    console.log('Neo4j URI ', config.neo4jUri);
+    console.log('Neo4j user ', config.neo4jUser);
+    console.log('Neo4j pwd ', config.neo4jPassword);
+    console.log('Neo4j db ', config.neo4jDatabase);
+
 
     let driver;
     if (config.neo4jUri && config.neo4jPassword) {
@@ -33,18 +39,24 @@ async function runSrvr() {
 
     const typeDefs = await loadTypeDefs();
     
-    const schema = new Neo4jGraphQL({
+    const neoSchema = new Neo4jGraphQL({
         typeDefs,
         driver,
         cache: { enabled: true, level: 'both', directory: config.cacheDir },
+        debug: true,
     });
     
+    // Create a Yoga instance with the neo4j schema and set the neo4j database to use
+    const yoga = createYoga({
+        schema: await neoSchema.getSchema(),
+        context: async ({ request }) => ({
+          driver,
+          driverConfig: {
+            database: config.neo4jDatabase // Set the database
+          }
+        })
+      })
 
-    
-
-    // Create a Yoga instance with the neo4j schema.
-    const yoga = createYoga({ schema: await schema.getSchema()})
-    
     // Pass it into a server to hook into request handlers.
     const server = createServer(yoga)
     
