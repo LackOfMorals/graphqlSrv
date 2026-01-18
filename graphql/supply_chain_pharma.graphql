@@ -1,0 +1,844 @@
+type API @node(labels: ["API", "Product"]) {
+  apisproductFlow: [API!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  description: String!
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  processStepsConsumes: [ProcessStep!]!
+    @relationship(type: "CONSUMES", direction: IN)
+  processStepsProduces: [ProcessStep!]!
+    @relationship(type: "PRODUCES", direction: IN)
+  productFlowapis: [API!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowdps: [DP!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  productsProductFlow: [Product!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  recipesProductFlow: [Recipe!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  strength: String!
+}
+
+type BULK @node(labels: ["BULK", "Product"]) {
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  bulksproductFlow: [BULK!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  description: String!
+  dpsproductFlow: [DP!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  processStepsConsumes: [ProcessStep!]!
+    @relationship(type: "CONSUMES", direction: IN)
+  processStepsProduces: [ProcessStep!]!
+    @relationship(type: "PRODUCES", direction: IN)
+  productFlowbulks: [BULK!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowfgs: [FG!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  productsProductFlow: [Product!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  strength: String!
+}
+
+type Batch @node {
+  batchFlowBatches: [Batch!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: OUT
+      properties: "BatchFlowProperties"
+    )
+  batchFlowDistributors: [Distributor!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: OUT
+      properties: "BatchFlowProperties"
+    )
+  batchesBatchFlow: [Batch!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: IN
+      properties: "BatchFlowProperties"
+    )
+  batchesNextEquipBatch: [Batch!]!
+    @relationship(type: "NEXT_EQUIP_BATCH", direction: IN)
+  cycleFinish: LocalDateTime
+  cycleStart: LocalDateTime
+  dateProduced: Date!
+  equipID: BigInt
+  equipmentUsedForBatch: [Equipment!]!
+    @relationship(type: "USED_FOR_BATCH", direction: IN)
+  form: String!
+  generation: String!
+  globalBrand: String!
+  isBatchForProduct2S: [Product2!]!
+    @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchForProducts: [Product!]!
+    @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchForapis: [API!]! @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchForbulks: [BULK!]! @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchFordists: [DIST!]! @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchFordps: [DP!]! @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  isBatchForfgs: [FG!]! @relationship(type: "IS_BATCH_FOR", direction: OUT)
+  location: String!
+  lotNumber: String!
+  materialType: String!
+  nextEquipBatchBatches: [Batch!]!
+    @relationship(type: "NEXT_EQUIP_BATCH", direction: OUT)
+  package: String!
+  productSKU: String!
+  productionRunsProducedBatch: [ProductionRun!]!
+    @relationship(type: "PRODUCED_BATCH", direction: IN)
+  recipesBatchFlow: [Recipe!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: IN
+      properties: "BatchFlowProperties"
+    )
+  sourceDate: Date
+  strength: String!
+  suppliersSuppliesBatch: [Suppliers!]!
+    @relationship(type: "SUPPLIES_BATCH", direction: IN)
+}
+
+type BatchFlowProperties @relationshipProperties {
+  form: String!
+  generation: String!
+  globalBrand: String!
+  lotNumber: String!
+  market: String!
+  strength: String!
+}
+
+type BrandLocations @node {
+  globalBrand: String!
+  location: String!
+}
+
+type DIST @node(labels: ["DIST", "Product"]) {
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  description: String!
+  distributedByDistributors: [Distributor!]!
+    @relationship(
+      type: "DISTRIBUTED_BY"
+      direction: OUT
+      properties: "DistributedByProperties"
+    )
+  distsproductFlow: [DIST!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  fgsproductFlow: [FG!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  processStepsConsumes: [ProcessStep!]!
+    @relationship(type: "CONSUMES", direction: IN)
+  processStepsProduces: [ProcessStep!]!
+    @relationship(type: "PRODUCES", direction: IN)
+  productFlowProduct2S: [Product2!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowdists: [DIST!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  strength: String!
+}
+
+type DP @node(labels: ["DP", "Product"]) {
+  apisproductFlow: [API!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  description: String!
+  dpsproductFlow: [DP!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  processStepsConsumes: [ProcessStep!]!
+    @relationship(type: "CONSUMES", direction: IN)
+  processStepsProduces: [ProcessStep!]!
+    @relationship(type: "PRODUCES", direction: IN)
+  productFlowbulks: [BULK!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowdps: [DP!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  productsProductFlow: [Product!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  strength: String!
+}
+
+type DistributedByProperties @relationshipProperties {
+  demandQty: BigInt!
+}
+
+type Distributor @node {
+  batchesBatchFlow: [Batch!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: IN
+      properties: "BatchFlowProperties"
+    )
+  distsdistributedBy: [DIST!]!
+    @relationship(
+      type: "DISTRIBUTED_BY"
+      direction: IN
+      properties: "DistributedByProperties"
+    )
+  iso3Code: String!
+  location: String!
+  market: String!
+  product2SDistributedBy: [Product2!]!
+    @relationship(
+      type: "DISTRIBUTED_BY"
+      direction: IN
+      properties: "DistributedByProperties"
+    )
+}
+
+type Employee @node {
+  email: String!
+  employeeID: BigInt!
+  firstName: String!
+  gender: String!
+  isCertifiedOperatorEquipment: [Equipment!]!
+    @relationship(
+      type: "IS_CERTIFIED_OPERATOR"
+      direction: OUT
+      properties: "IsCertifiedOperatorProperties"
+    )
+  lastName: String!
+  location: String!
+  performedPostrunPostRunStages: [PostRunStage!]!
+    @relationship(type: "PERFORMED_POSTRUN", direction: OUT)
+  performedRunProductionRuns: [ProductionRun!]!
+    @relationship(type: "PERFORMED_RUN", direction: OUT)
+  performedSetupPreRunSetups: [PreRunSetup!]!
+    @relationship(type: "PERFORMED_SETUP", direction: OUT)
+}
+
+type Equipment @node {
+  employeesIsCertifiedOperator: [Employee!]!
+    @relationship(
+      type: "IS_CERTIFIED_OPERATOR"
+      direction: IN
+      properties: "IsCertifiedOperatorProperties"
+    )
+  equipID: BigInt!
+  firstRunEquipProductionRuns: [ProductionRun!]!
+    @relationship(type: "FIRST_RUN_EQUIP", direction: OUT)
+  location: String!
+  manufacturer: String!
+  model: String!
+  nomenclature: String!
+  postRunStagesEquipPostrun: [PostRunStage!]!
+    @relationship(type: "EQUIP_POSTRUN", direction: IN)
+  preRunSetupsEquipSetup: [PreRunSetup!]!
+    @relationship(type: "EQUIP_SETUP", direction: IN)
+  processStepsProcessingEquipment: [ProcessStep!]!
+    @relationship(type: "PROCESSING_EQUIPMENT", direction: IN)
+  productionRunsUsedEquip: [ProductionRun!]!
+    @relationship(type: "USED_EQUIP", direction: IN)
+  serialNum: String!
+  stage: BigInt
+  step: BigInt
+  usedForBatchBatches: [Batch!]!
+    @relationship(type: "USED_FOR_BATCH", direction: OUT)
+}
+
+type FG @node(labels: ["FG", "Product"]) {
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  bulksproductFlow: [BULK!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  description: String!
+  fgsproductFlow: [FG!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  processStepsConsumes: [ProcessStep!]!
+    @relationship(type: "CONSUMES", direction: IN)
+  processStepsProduces: [ProcessStep!]!
+    @relationship(type: "PRODUCES", direction: IN)
+  productFlowdists: [DIST!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowfgs: [FG!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  productsProductFlow: [Product!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  strength: String!
+}
+
+type GlobalBrand @node {
+  globalBrand: String!
+  hasRecipeRecipes: [Recipe!]! @relationship(type: "HAS_RECIPE", direction: OUT)
+  molecularForm: String!
+}
+
+type IsCertifiedOperatorProperties @relationshipProperties {
+  yearsExperience: BigInt!
+}
+
+type LastMT @node {
+  nodeID: String!
+  nodeList: [String!]!
+  seq: BigInt!
+}
+
+type LastProduct @node {
+  nodeID: String!
+  nodeList: [String!]!
+  seq: BigInt!
+}
+
+type LastStage @node {
+  nodeID: String!
+  nodeList: [String!]!
+  seq: BigInt!
+}
+
+type LastStep @node {
+  nodeID: String!
+  nodeList: [String!]!
+  seq: BigInt!
+}
+
+type MaterialFlowProperties @relationshipProperties {
+  form: String!
+  generation: String!
+  globalBrand: String!
+  market: String!
+  strength: String!
+}
+
+type MaterialType @node {
+  globalBrand: String!
+  location: String!
+  materialFlowMaterialTypes: [MaterialType!]!
+    @relationship(
+      type: "MATERIAL_FLOW"
+      direction: OUT
+      properties: "MaterialFlowProperties"
+    )
+  materialType: String!
+  materialTypesMaterialFlow: [MaterialType!]!
+    @relationship(
+      type: "MATERIAL_FLOW"
+      direction: IN
+      properties: "MaterialFlowProperties"
+    )
+  processStagesIsStageIn: [ProcessStage!]!
+    @relationship(type: "IS_STAGE_IN", direction: IN)
+  recipesMaterialFlow: [Recipe!]!
+    @relationship(
+      type: "MATERIAL_FLOW"
+      direction: IN
+      properties: "MaterialFlowProperties"
+    )
+}
+
+type NextRunEquipProperties @relationshipProperties {
+  idleDuration: Duration!
+}
+
+type PostRunStage @node {
+  employeesPerformedPostrun: [Employee!]!
+    @relationship(type: "PERFORMED_POSTRUN", direction: IN)
+  equipID: BigInt!
+  equipPostrunEquipment: [Equipment!]!
+    @relationship(type: "EQUIP_POSTRUN", direction: OUT)
+  location: String!
+  lotNumber: String!
+  nextEquipUsePreRunSetups: [PreRunSetup!]!
+    @relationship(type: "NEXT_EQUIP_USE", direction: OUT)
+  postRunDuration: Duration!
+  postRunFinishTime: LocalDateTime!
+  postRunStartTime: LocalDateTime!
+  postRunTimeHMS: LocalTime!
+  productSKU: String!
+  productionRunsPostrun: [ProductionRun!]!
+    @relationship(type: "POSTRUN", direction: IN)
+}
+
+type PreRunSetup @node {
+  employeesPerformedSetup: [Employee!]!
+    @relationship(type: "PERFORMED_SETUP", direction: IN)
+  equipID: BigInt!
+  equipSetupEquipment: [Equipment!]!
+    @relationship(type: "EQUIP_SETUP", direction: OUT)
+  location: String!
+  lotNumber: String!
+  postRunStagesNextEquipUse: [PostRunStage!]!
+    @relationship(type: "NEXT_EQUIP_USE", direction: IN)
+  prepForRunProductionRuns: [ProductionRun!]!
+    @relationship(type: "PREP_FOR_RUN", direction: OUT)
+  productSKU: String!
+  setupDuration: Duration!
+  setupFinishTime: LocalDateTime!
+  setupStartTime: LocalDateTime!
+  setupTimeHMS: LocalTime!
+}
+
+type ProcessStage @node {
+  globalBrand: String!
+  isStageInMaterialTypes: [MaterialType!]!
+    @relationship(type: "IS_STAGE_IN", direction: OUT)
+  location: String!
+  materialType: String!
+  nextStage: BigInt
+  process: String!
+  processStage: String!
+  processStagesStageFlow: [ProcessStage!]!
+    @relationship(
+      type: "STAGE_FLOW"
+      direction: IN
+      properties: "StageFlowProperties"
+    )
+  processStepsIsStepIn: [ProcessStep!]!
+    @relationship(type: "IS_STEP_IN", direction: IN)
+  recipesStageFlow: [Recipe!]!
+    @relationship(
+      type: "STAGE_FLOW"
+      direction: IN
+      properties: "StageFlowProperties"
+    )
+  stageFlowProcessStages: [ProcessStage!]!
+    @relationship(
+      type: "STAGE_FLOW"
+      direction: OUT
+      properties: "StageFlowProperties"
+    )
+  stageNum: BigInt!
+}
+
+type ProcessStep @node {
+  consumesapis: [API!]! @relationship(type: "CONSUMES", direction: OUT)
+  consumesbulks: [BULK!]! @relationship(type: "CONSUMES", direction: OUT)
+  consumesdists: [DIST!]! @relationship(type: "CONSUMES", direction: OUT)
+  consumesdps: [DP!]! @relationship(type: "CONSUMES", direction: OUT)
+  consumesfgs: [FG!]! @relationship(type: "CONSUMES", direction: OUT)
+  globalBrand: String!
+  isLastStep: Boolean!
+  isStepInProcessStages: [ProcessStage!]!
+    @relationship(type: "IS_STEP_IN", direction: OUT)
+  location: String!
+  materialType: String!
+  nextStage: BigInt
+  nextStep: BigInt
+  package: String!
+  process: String!
+  processStage: String!
+  processStep: String!
+  processStepsStepFlow: [ProcessStep!]!
+    @relationship(
+      type: "STEP_FLOW"
+      direction: IN
+      properties: "StepFlowProperties"
+    )
+  processingEquipmentEquipment: [Equipment!]!
+    @relationship(type: "PROCESSING_EQUIPMENT", direction: OUT)
+  producesapis: [API!]! @relationship(type: "PRODUCES", direction: OUT)
+  producesbulks: [BULK!]! @relationship(type: "PRODUCES", direction: OUT)
+  producesdists: [DIST!]! @relationship(type: "PRODUCES", direction: OUT)
+  producesdps: [DP!]! @relationship(type: "PRODUCES", direction: OUT)
+  producesfgs: [FG!]! @relationship(type: "PRODUCES", direction: OUT)
+  recipesStepFlow: [Recipe!]!
+    @relationship(
+      type: "STEP_FLOW"
+      direction: IN
+      properties: "StepFlowProperties"
+    )
+  stageNum: BigInt!
+  stepFlowProcessSteps: [ProcessStep!]!
+    @relationship(
+      type: "STEP_FLOW"
+      direction: OUT
+      properties: "StepFlowProperties"
+    )
+  stepNum: BigInt!
+}
+
+type ProcessTemplates @node {
+  addRM: Boolean!
+  forkBefore: Boolean!
+  isLastStep: Boolean!
+  materialType: String!
+  nextStage: BigInt
+  nextStep: BigInt
+  nextTemplateStepProcessTemplates: [ProcessTemplates!]!
+    @relationship(type: "NEXT_TEMPLATE_STEP", direction: OUT)
+  package: String!
+  process: String!
+  processTemplatesNextTemplateStep: [ProcessTemplates!]!
+    @relationship(type: "NEXT_TEMPLATE_STEP", direction: IN)
+  stage: BigInt!
+  stageName: String!
+  step: BigInt!
+  stepName: String!
+}
+
+type Product @node(labels: ["Product", "RM"]) {
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  description: String!
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  productFlowapis: [API!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowbulks: [BULK!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowdps: [DP!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productFlowfgs: [FG!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productSKU: String!
+  rmSequence: BigInt!
+  strength: String!
+  suppliersSuppliesRm: [Suppliers!]!
+    @relationship(
+      type: "SUPPLIES_RM"
+      direction: IN
+      properties: "SuppliesRmProperties"
+    )
+}
+
+type Product2 @node(labels: ["Product"]) {
+  batchesIsBatchFor: [Batch!]!
+    @relationship(type: "IS_BATCH_FOR", direction: IN)
+  description: String!
+  distributedByDistributors: [Distributor!]!
+    @relationship(
+      type: "DISTRIBUTED_BY"
+      direction: OUT
+      properties: "DistributedByProperties"
+    )
+  distsproductFlow: [DIST!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: IN
+      properties: "ProductFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  location: String!
+  materialType: String!
+  package: String!
+  productSKU: String!
+  sourceDate: Date!
+  strength: String!
+}
+
+type ProductFlowProperties @relationshipProperties {
+  conversionRatio: Float
+  form: String!
+  generation: String!
+  globalBrand: String!
+  inPercent: Float
+  market: String!
+  outPercent: Float
+  package: String
+  strength: String!
+}
+
+type ProductionRun @node {
+  employeesPerformedRun: [Employee!]!
+    @relationship(type: "PERFORMED_RUN", direction: IN)
+  equipID: BigInt!
+  equipUsed: String!
+  equipmentFirstRunEquip: [Equipment!]!
+    @relationship(type: "FIRST_RUN_EQUIP", direction: IN)
+  finishTime: LocalDateTime!
+  location: String!
+  lotNumber: String!
+  nextRunEquipProductionRuns: [ProductionRun!]!
+    @relationship(
+      type: "NEXT_RUN_EQUIP"
+      direction: OUT
+      properties: "NextRunEquipProperties"
+    )
+  overlappedUpdated: Boolean
+  postrunPostRunStages: [PostRunStage!]!
+    @relationship(type: "POSTRUN", direction: OUT)
+  preRunSetupsPrepForRun: [PreRunSetup!]!
+    @relationship(type: "PREP_FOR_RUN", direction: IN)
+  producedBatchBatches: [Batch!]!
+    @relationship(type: "PRODUCED_BATCH", direction: OUT)
+  productSKU: String!
+  productionRunsNextRunEquip: [ProductionRun!]!
+    @relationship(
+      type: "NEXT_RUN_EQUIP"
+      direction: IN
+      properties: "NextRunEquipProperties"
+    )
+  runDuration: Duration!
+  runTimeHMS: LocalTime!
+  startTime: LocalDateTime!
+  usedEquipEquipment: [Equipment!]!
+    @relationship(type: "USED_EQUIP", direction: OUT)
+}
+
+type Recipe @node {
+  batchFlowBatches: [Batch!]!
+    @relationship(
+      type: "BATCH_FLOW"
+      direction: OUT
+      properties: "BatchFlowProperties"
+    )
+  form: String!
+  generation: String!
+  globalBrand: String!
+  globalBrandsHasRecipe: [GlobalBrand!]!
+    @relationship(type: "HAS_RECIPE", direction: IN)
+  market: String!
+  materialFlowMaterialTypes: [MaterialType!]!
+    @relationship(
+      type: "MATERIAL_FLOW"
+      direction: OUT
+      properties: "MaterialFlowProperties"
+    )
+  materialList: [String!]!
+  molecularForm: String!
+  productFlowapis: [API!]!
+    @relationship(
+      type: "PRODUCT_FLOW"
+      direction: OUT
+      properties: "ProductFlowProperties"
+    )
+  productList: [String!]!
+  stageFlowProcessStages: [ProcessStage!]!
+    @relationship(
+      type: "STAGE_FLOW"
+      direction: OUT
+      properties: "StageFlowProperties"
+    )
+  stageList: [String!]!
+  stepFlowProcessSteps: [ProcessStep!]!
+    @relationship(
+      type: "STEP_FLOW"
+      direction: OUT
+      properties: "StepFlowProperties"
+    )
+  stepList: [String!]!
+  strength: String!
+}
+
+type Site @node {
+  location: String!
+  market: String!
+}
+
+type StageFlowProperties @relationshipProperties {
+  form: String!
+  generation: String!
+  globalBrand: String!
+  market: String!
+  strength: String!
+}
+
+type StepFlowProperties @relationshipProperties {
+  form: String!
+  generation: String!
+  globalBrand: String!
+  market: String!
+  strength: String!
+}
+
+type Suppliers @node {
+  companyName: String!
+  countryCode: String!
+  iso3Code: String!
+  suppliesBatchBatches: [Batch!]!
+    @relationship(type: "SUPPLIES_BATCH", direction: OUT)
+  suppliesRmProducts: [Product!]!
+    @relationship(
+      type: "SUPPLIES_RM"
+      direction: OUT
+      properties: "SuppliesRmProperties"
+    )
+}
+
+type SuppliesRmProperties @relationshipProperties {
+  supplierCapacity: BigInt!
+}
+
+type _Bloom_Perspective_ @node {
+  bloomHasSceneBloomSceneS: [_Bloom_Scene_!]!
+    @relationship(type: "_Bloom_HAS_SCENE_", direction: OUT)
+  data: String!
+  id: String!
+  name: String!
+  roles: [String!]!
+  version: String!
+}
+
+type _Bloom_Scene_ @node {
+  bloomPerspectiveSBloomHasScene: [_Bloom_Perspective_!]!
+    @relationship(type: "_Bloom_HAS_SCENE_", direction: IN)
+  createdAt: BigInt!
+  createdBy: String!
+  filters: String!
+  gds: String!
+  id: String!
+  lastModified: BigInt!
+  name: String!
+  nodes: String!
+  numOfNodes: BigInt!
+  numOfRels: BigInt!
+  ranges: String!
+  relationships: String!
+  roles: [String!]!
+  style: String!
+  version: String!
+  visualisation: String!
+}
+
+type _Neodash_Dashboard @node {
+  content: String!
+  date: DateTime!
+  title: String!
+  user: String!
+  uuid: String!
+  version: String!
+}

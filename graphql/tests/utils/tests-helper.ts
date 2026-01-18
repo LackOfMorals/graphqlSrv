@@ -1,0 +1,392 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import Cypher from "@neo4j/cypher-builder";
+import type { ExecutionResult, GraphQLArgs } from "graphql";
+import { graphql as graphqlRuntime } from "graphql";
+import * as neo4j from "neo4j-driver";
+import type { Neo4jGraphQLConstructor, Neo4jGraphQLContext } from "../../src";
+import { Neo4jGraphQL, Neo4jGraphQLSubscriptionsCDCEngine } from "../../src";
+import { Neo4jDatabaseInfo } from "../../src/classes";
+import type { Neo4jGraphQLSessionConfig } from "../../src/classes/Executor";
+import type { Neo4jEdition } from "../../src/classes/Neo4jDatabaseInfo";
+import { ADD_CYPHER_VERSION_PREFIX } from "./constants";
+import { createBearerToken } from "./create-bearer-token";
+import { UniqueType } from "./graphql-types";
+import { NeoExpectCypher } from "./neo-expect/expect-cypher";
+import { NeoExpectNode } from "./neo-expect/expect-node";
+import { NeoExpectRelationship } from "./neo-expect/expect-relationship";
+
+const INT_TEST_DB_NAME = "neo4jgraphqlinttestdatabase";
+const DEFAULT_DB = "neo4j";
+const readWriteUser = "neo4jgraphqlinttestuser";
+
+export class TestHelper {
+    private _database: string = DEFAULT_DB;
+    private neo4jGraphQL: Neo4jGraphQL | undefined;
+    private uniqueTypes: UniqueType[] = [];
+    private driver: neo4j.Driver | undefined;
+
+    private lock: boolean = false; // Lock to avoid race condition between initNeo4jGraphQL
+
+    private customDB: string | undefined;
+
+    private subscriptionEngine?: Neo4jGraphQLSubscriptionsCDCEngine;
+
+    private cdc: boolean;
+    private onlyGraphQLEvents: boolean;
+
+    constructor(
+        { cdc = false, onlyGraphQLEvents = false }: { cdc: boolean; onlyGraphQLEvents?: boolean } = {
+            cdc: false,
+            onlyGraphQLEvents: false,
+        }
+    ) {
+        this.cdc = cdc;
+        this.onlyGraphQLEvents = onlyGraphQLEvents;
+    }
+
+    public get database(): string {
+        return this.customDB ?? this._database;
+    }
+
+    /** Expectations over a Node label */
+    public expectNode(type: UniqueType | string): NeoExpectNode {
+        const executeFn = this.executeCypher.bind(this);
+        return new NeoExpectNode(executeFn, type);
+    }
+
+    /** Expectations over a Relationship */
+    public expectRelationship(
+        from: UniqueType | string,
+        to: UniqueType | string,
+        type?: string
+    ): NeoExpectRelationship {
+        const executeFn = this.executeCypher.bind(this);
+        return new NeoExpectRelationship(executeFn, from, to, type);
+    }
+
+    public expectCypher(cypher: string, params: Record<string, unknown> = {}): NeoExpectCypher {
+        const executeFn = this.executeCypher.bind(this);
+        return new NeoExpectCypher(executeFn, cypher, params);
+    }
+
+    public createBearerToken(secret: string, extraData?: Record<string, any>) {
+        return createBearerToken(secret, extraData);
+    }
+
+    /** Returns a CDC engine attached to the driver, will be closed automatically */
+    public async getSubscriptionEngine(): Promise<Neo4jGraphQLSubscriptionsCDCEngine> {
+        if (this.subscriptionEngine) {
+            return this.subscriptionEngine;
+        }
+
+        if (!this.cdc) {
+            throw new Error("Error in getSubscriptionEngine. CDC is not enabled in test database");
+        }
+
+        this.subscriptionEngine = new Neo4jGraphQLSubscriptionsCDCEngine({
+            driver: await this.getDriver(),
+            pollTime: 100,
+            queryConfig: {
+                database: this.database,
+            },
+            onlyGraphQLEvents: this.onlyGraphQLEvents,
+        });
+
+        return this.subscriptionEngine;
+    }
+
+    public async initNeo4jGraphQL(options: Omit<Neo4jGraphQLConstructor, "driver">): Promise<Neo4jGraphQL> {
+        if (this.neo4jGraphQL || this.lock) {
+            throw new Error("Neo4jGraphQL already initialized. Did you forget calling .close()?");
+        }
+        this.lock = true;
+
+        const driver = await this.getDriver();
+
+        this.neo4jGraphQL = new Neo4jGraphQL({
+            ...options,
+            driver,
+        });
+
+        return this.neo4jGraphQL;
+    }
+
+    public async assertCDCEnabled(): Promise<boolean> {
+        if (!this.cdc) {
+            throw new Error(
+                "CDC is note enable in test helper. Did you forget to set cdc:true or used assertCDCEnabled by mistake?"
+            );
+        }
+
+        const dbInfo = await this.getDatabaseInfo();
+        if (!dbInfo.isAura()) {
+            await this.executeCypher(`ALTER DATABASE ${this.database} SET OPTION txLogEnrichment "FULL"`);
+        }
+
+        const result = await this.executeCypher(`
+        SHOW DATABASES YIELD name, options
+        WHERE name = "${this.database}"
+        RETURN coalesce(options.txLogEnrichment = "FULL", false) AS cdcEnabled
+        `);
+
+        return result.records[0]?.get("cdcEnabled");
+    }
+
+    public createUniqueType(type: string): UniqueType {
+        const uniqueType = new UniqueType(type);
+        this.uniqueTypes.push(uniqueType);
+        return uniqueType;
+    }
+
+    public async executeCypher(query: string, params: Record<string, unknown> = {}): Promise<neo4j.QueryResult> {
+        const driver = await this.getDriver();
+        return driver.executeQuery(query, params, { database: this.database });
+    }
+
+    public async executeGraphQL(
+        query: string,
+        args: Partial<Pick<GraphQLArgs, "variableValues" | "contextValue" | "schema">> = {}
+    ): Promise<ExecutionResult> {
+        if (!this.neo4jGraphQL) {
+            throw new Error("Neo4j GraphQL not ready. Did you forget calling 'initNeo4jGraphQL'?");
+        }
+        if (args.contextValue instanceof Promise) {
+            throw new Error("contextValue is a promise. Did you forget to use await with 'getContextValue'?");
+        }
+        const schema = await this.neo4jGraphQL.getSchema();
+        const useRestrictedUser = process.env.USE_RESTRICTED_USER === "true";
+        return graphqlRuntime({
+            schema,
+            ...args,
+            source: query,
+            contextValue: await this.getContextValue(
+                args.contextValue as Partial<Neo4jGraphQLContext> | undefined,
+                useRestrictedUser
+            ),
+        });
+    }
+
+    public async executeGraphQLWithToken(
+        query: string,
+        token: string,
+        args: Partial<Pick<GraphQLArgs, "variableValues">> = {}
+    ): Promise<ExecutionResult> {
+        return this.executeGraphQL(query, {
+            ...args,
+            contextValue: await this.getContextValue({ token }),
+        });
+    }
+
+    /**
+     * Gracefully closes a test neo4jGraphQl created {@link initNeo4jGraphQL} and cleans all nodes
+     * with labels created with ${@link createUniqueType}
+     * Use this in `afterEach` or `afterAll`.This method fails if called with an unopened server.
+     * @param preClose - A callback to execute before closing and cleaning the nodes
+     */
+    public async close(preClose?: () => Promise<void>): Promise<void> {
+        if (!this.driver) {
+            this.reset();
+            throw new Error("Closing unopened testHelper. Did you forget to call initNeo4jGraphQL?");
+        }
+        const driver = await this.getDriver();
+        if (preClose) {
+            try {
+                await preClose();
+            } catch (_err) {
+                // Ignore error
+            }
+        }
+        await this.cleanNodes(driver, this.uniqueTypes);
+        this.closeSubscriptionEngine();
+        await driver.close();
+        this.reset();
+    }
+
+    /** Use this if using graphql() directly. If possible, use .runGraphQL */
+    public async getContextValue(
+        options?: Record<string, unknown>,
+        useRestrictedUser?: boolean
+    ): Promise<Neo4jGraphQLContext> {
+        const driver = await this.getDriver();
+
+        const sessionConfig: Neo4jGraphQLSessionConfig = {
+            database: this.database,
+        };
+
+        if (useRestrictedUser) {
+            sessionConfig.impersonatedUser = readWriteUser;
+        }
+        return {
+            executionContext: driver,
+            sessionConfig,
+            cypherQueryOptions: {
+                addVersionPrefix: ADD_CYPHER_VERSION_PREFIX,
+            },
+            ...(options || {}),
+        };
+    }
+
+    public async getDriver(): Promise<neo4j.Driver> {
+        if (this.driver) {
+            return this.driver;
+        }
+        const { NEO_USER = "neo4j", NEO_PASSWORD = "password", NEO_URL = "neo4j://localhost:7687/neo4j" } = process.env;
+
+        const auth = neo4j.auth.basic(NEO_USER, NEO_PASSWORD);
+        const driver = neo4j.driver(NEO_URL, auth);
+
+        try {
+            this._database = await this.checkConnectivity(driver);
+        } catch (error: any) {
+            await driver.close();
+            throw new Error(`Could not connect to neo4j @ ${NEO_URL}, Error: ${error.message}`);
+        }
+
+        this.driver = driver;
+
+        return this.driver;
+    }
+
+    /** Use only for tests needing a session, for normal tests use `.runGraphQL` instead.
+     * Note that sessions will **not** be cleaned up with `testHelper.close`
+     * */
+    public async getSession(options?: Record<string, unknown>): Promise<neo4j.Session> {
+        const driver = await this.getDriver();
+        const appliedOptions = { ...options, database: this.database };
+        return driver.session(appliedOptions);
+    }
+
+    /** Creates a new database, need to call `dropDatabase` afterwards */
+    public async createDatabase(db: string): Promise<void> {
+        if (this.customDB) {
+            throw new Error("Cannot create new database. Did you forget to call dropDatabase?");
+        }
+        await this.executeCypher(`CREATE DATABASE ${Cypher.utils.escapeVariable(db)} WAIT`);
+        this.customDB = db;
+    }
+
+    public async dropDatabase(): Promise<void> {
+        if (!this.customDB) {
+            throw new Error("Cannot drop database. Did you forget to call createDatabase?");
+        }
+        await this.executeCypher(`DROP DATABASE  ${Cypher.utils.escapeVariable(this.customDB)}`);
+        this.customDB = undefined;
+    }
+
+    public async getDatabaseInfo(): Promise<Neo4jDatabaseInfo> {
+        const DBMS_COMPONENTS_QUERY =
+            "CALL dbms.components() YIELD versions, edition UNWIND versions AS version RETURN version, edition";
+        const { records } = await this.executeCypher(DBMS_COMPONENTS_QUERY);
+        const rawRow = records[0] as any;
+        const [rawVersion, edition] = rawRow as [string, Neo4jEdition];
+        return new Neo4jDatabaseInfo(rawVersion, edition);
+    }
+
+    public async createFulltextIndex(name: string, label: string, properties: string[]): Promise<void> {
+        const cypher = [
+            `CREATE FULLTEXT INDEX ${name}`,
+            `IF NOT EXISTS FOR (n:${label})`,
+            `ON EACH [${properties.map((p) => `n.${p}`).join(", ")}]`,
+        ].join(" ");
+
+        await this.executeCypher(cypher);
+    }
+
+    public async createUniqueConstraint(name: string, label: string, property: string): Promise<void> {
+        const cypher = [
+            `CREATE CONSTRAINT ${name}`,
+            `IF NOT EXISTS FOR (n:${label})`,
+            `REQUIRE n.${property} IS UNIQUE`,
+        ].join(" ");
+
+        await this.executeCypher(cypher);
+    }
+
+    private reset() {
+        this.driver = undefined;
+        this.uniqueTypes = [];
+        this.neo4jGraphQL = undefined;
+        this.lock = false;
+    }
+
+    private closeSubscriptionEngine(): void {
+        if (this.subscriptionEngine) {
+            this.subscriptionEngine.close();
+            this.subscriptionEngine = undefined;
+        }
+    }
+
+    private async checkConnectivity(driver: neo4j.Driver): Promise<string> {
+        if (process.env.USE_DEFAULT_DB) {
+            return this.checkConnectivityToDefaultDatabase(driver);
+        } else {
+            return this.verifyConnectivityToTestDatabase(driver);
+        }
+    }
+
+    private async checkConnectivityToDefaultDatabase(driver: neo4j.Driver): Promise<string> {
+        await driver.verifyConnectivity();
+        return DEFAULT_DB;
+    }
+
+    private async verifyConnectivityToTestDatabase(driver: neo4j.Driver): Promise<string> {
+        try {
+            await driver.verifyConnectivity({ database: INT_TEST_DB_NAME });
+            return INT_TEST_DB_NAME;
+        } catch (error: any) {
+            if (
+                error.message.includes("Could not perform discovery. No routing servers available.") ||
+                error.message.includes(
+                    `Unable to get a routing table for database '${INT_TEST_DB_NAME}' because this database does not exist`
+                ) ||
+                error.message.includes(`Database does not exist. Database name: '${INT_TEST_DB_NAME}'`)
+            ) {
+                await this.checkConnectivityToDefaultDatabase(driver);
+                return DEFAULT_DB;
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    /** Removes all nodes with the given labels from the database */
+    private async cleanNodes(driver: neo4j.Driver, labels: Array<string | UniqueType>): Promise<void> {
+        if (labels.length === 0) {
+            // We don't want to delete all nodes
+            return;
+        }
+
+        const nodeRef = new Cypher.Node();
+
+        const nodeHasLabelPredicates = labels.map((l) => {
+            return nodeRef.hasLabel(`${l}`);
+        });
+
+        const nodeHasAnyLabelPredicate = Cypher.or(...nodeHasLabelPredicates);
+
+        const query = new Cypher.Match(new Cypher.Pattern(nodeRef))
+            .where(nodeHasAnyLabelPredicate)
+            .detachDelete(nodeRef);
+        const { cypher } = query.build();
+
+        await driver.executeQuery(cypher, {}, { database: this.database });
+    }
+}

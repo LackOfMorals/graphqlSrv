@@ -1,0 +1,75 @@
+query SortMultipleTypes {
+    movies(sort: { title: ASC }, limit: 10) {
+        title
+        actorsConnection {
+            edges {
+                node {
+                    name
+                }
+            }
+        }
+        directorsConnection {
+            edges {
+                node {
+                    name
+                }
+            }
+        }
+    }
+}
+
+query SortMultipleTypesWithCypherWithCypher {
+    movies(sort: { oneActorName: ASC }, limit: 10) {
+        title
+        actorsConnection {
+            edges {
+                node {
+                    name
+                }
+            }
+        }
+        directorsConnection {
+            edges {
+                node {
+                    name
+                }
+            }
+        }
+    }
+}
+
+query SortOnNestedFields {
+    movies {
+        actors(sort: { name: ASC }) {
+            name
+        }
+    }
+}
+
+query SortDeeplyNestedFields {
+    movies {
+        title
+        actors(sort: { name: ASC }) {
+            movies(sort: { released: DESC }) {
+                released
+            }
+        }
+    }
+}
+
+query ConnectionWithSort {
+    moviesConnection(first: 5, sort: { title: ASC }) {
+        edges {
+            node {
+                title
+                actorsConnection {
+                    edges {
+                        node {
+                            name
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

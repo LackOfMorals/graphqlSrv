@@ -1,0 +1,193 @@
+type AssocEmailProperties @relationshipProperties {
+	weight: Float!
+}
+
+type AssocIdProperties @relationshipProperties {
+	weight: Float!
+}
+
+type AssocPhoneProperties @relationshipProperties {
+	weight: Float!
+}
+
+type Country @node {
+	countryName: String!
+	customer2SLocation: [Customer2!]! @relationship(type: "LOCATION", direction: IN)
+	customersLocation: [Customer!]! @relationship(type: "LOCATION", direction: IN)
+}
+
+type Customer @node {
+	assocEmailEmailAddress2S: [EmailAddress2!]! @relationship(type: "ASSOC_EMAIL", direction: OUT, properties: "AssocEmailProperties")
+	assocIdIdentifier2S: [Identifier2!]! @relationship(type: "ASSOC_ID", direction: OUT, properties: "AssocIdProperties")
+	assocPhonePhone2S: [Phone2!]! @relationship(type: "ASSOC_PHONE", direction: OUT, properties: "AssocPhoneProperties")
+	customer2SSimilarPurchaseTo: [Customer2!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: IN, properties: "SimilarPurchaseToProperties")
+	customerId: String!
+	customersSimilarPurchaseTo: [Customer!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: IN, properties: "SimilarPurchaseToProperties")
+	embedding: [Float!]!
+	firstName: String!
+	firstOrderOrder2S: [Order2!]! @relationship(type: "FIRST_ORDER", direction: OUT)
+	firstOrderOrders: [Order!]! @relationship(type: "FIRST_ORDER", direction: OUT)
+	lastName: String!
+	lastOrderOrder2S: [Order2!]! @relationship(type: "LAST_ORDER", direction: OUT)
+	lastOrderOrders: [Order!]! @relationship(type: "LAST_ORDER", direction: OUT)
+	locationCountries: [Country!]! @relationship(type: "LOCATION", direction: OUT)
+	orderedOrder2S: [Order2!]! @relationship(type: "ORDERED", direction: OUT)
+	orderedOrders: [Order!]! @relationship(type: "ORDERED", direction: OUT)
+	purchasedProducts: [Product!]! @relationship(type: "PURCHASED", direction: OUT, properties: "PurchasedProperties")
+	segmentId: BigInt!
+	similarPurchaseToCustomer2S: [Customer2!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: OUT, properties: "SimilarPurchaseToProperties")
+	similarPurchaseToCustomers: [Customer!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: OUT, properties: "SimilarPurchaseToProperties")
+	wccId: BigInt!
+}
+
+type Customer2 @node(labels: ["Customer", "ValidCommunity"]) {
+	assocEmailEmailAddress3S: [EmailAddress3!]! @relationship(type: "ASSOC_EMAIL", direction: OUT, properties: "AssocEmailProperties")
+	assocEmailEmailAddresses: [EmailAddress!]! @relationship(type: "ASSOC_EMAIL", direction: OUT, properties: "AssocEmailProperties")
+	assocIdIdentifier3S: [Identifier3!]! @relationship(type: "ASSOC_ID", direction: OUT, properties: "AssocIdProperties")
+	assocIdIdentifiers: [Identifier!]! @relationship(type: "ASSOC_ID", direction: OUT, properties: "AssocIdProperties")
+	assocPhoneOutliers: [Outlier!]! @relationship(type: "ASSOC_PHONE", direction: OUT, properties: "AssocPhoneProperties")
+	assocPhonePhones: [Phone!]! @relationship(type: "ASSOC_PHONE", direction: OUT, properties: "AssocPhoneProperties")
+	customer2SSharedPii: [Customer2!]! @relationship(type: "SHARED_PII", direction: IN, properties: "SharedPiiProperties")
+	customer2SSimilarPurchaseTo: [Customer2!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: IN, properties: "SimilarPurchaseToProperties")
+	customerId: String!
+	customersSimilarPurchaseTo: [Customer!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: IN, properties: "SimilarPurchaseToProperties")
+	embedding: [Float!]!
+	firstName: String!
+	firstOrderOrder2S: [Order2!]! @relationship(type: "FIRST_ORDER", direction: OUT)
+	firstOrderOrders: [Order!]! @relationship(type: "FIRST_ORDER", direction: OUT)
+	lastName: String!
+	lastOrderOrder2S: [Order2!]! @relationship(type: "LAST_ORDER", direction: OUT)
+	lastOrderOrders: [Order!]! @relationship(type: "LAST_ORDER", direction: OUT)
+	locationCountries: [Country!]! @relationship(type: "LOCATION", direction: OUT)
+	orderedOrder2S: [Order2!]! @relationship(type: "ORDERED", direction: OUT)
+	orderedOrders: [Order!]! @relationship(type: "ORDERED", direction: OUT)
+	prev_firstName: String
+	prev_lastName: String
+	purchasedProducts: [Product!]! @relationship(type: "PURCHASED", direction: OUT, properties: "PurchasedProperties")
+	segmentId: BigInt!
+	sharedPiiCustomer2S: [Customer2!]! @relationship(type: "SHARED_PII", direction: OUT, properties: "SharedPiiProperties")
+	similarPurchaseToCustomer2S: [Customer2!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: OUT, properties: "SimilarPurchaseToProperties")
+	similarPurchaseToCustomers: [Customer!]! @relationship(type: "SIMILAR_PURCHASE_TO", direction: OUT, properties: "SimilarPurchaseToProperties")
+	wccId: BigInt!
+}
+
+type EmailAddress @node(labels: ["EmailAddress", "ValidCommunity"]) {
+	customer2SAssocEmail: [Customer2!]! @relationship(type: "ASSOC_EMAIL", direction: IN, properties: "AssocEmailProperties")
+	emailAddress: String!
+	wccId: BigInt!
+}
+
+type EmailAddress2 @node(labels: ["EmailAddress"]) {
+	customersAssocEmail: [Customer!]! @relationship(type: "ASSOC_EMAIL", direction: IN, properties: "AssocEmailProperties")
+	emailAddress: String!
+	wccId: BigInt!
+}
+
+type EmailAddress3 @node(labels: ["EmailAddress", "Outlier", "ValidCommunity"]) {
+	customer2SAssocEmail: [Customer2!]! @relationship(type: "ASSOC_EMAIL", direction: IN, properties: "AssocEmailProperties")
+	emailAddress: String!
+	wccId: BigInt!
+}
+
+type Identifier @node(labels: ["Identifier", "ValidCommunity"]) {
+	customer2SAssocId: [Customer2!]! @relationship(type: "ASSOC_ID", direction: IN, properties: "AssocIdProperties")
+	govtId: BigInt!
+	wccId: BigInt!
+}
+
+type Identifier2 @node(labels: ["Identifier"]) {
+	customersAssocId: [Customer!]! @relationship(type: "ASSOC_ID", direction: IN, properties: "AssocIdProperties")
+	govtId: BigInt!
+	wccId: BigInt!
+}
+
+type Identifier3 @node(labels: ["Identifier", "Outlier", "ValidCommunity"]) {
+	customer2SAssocId: [Customer2!]! @relationship(type: "ASSOC_ID", direction: IN, properties: "AssocIdProperties")
+	govtId: BigInt!
+	wccId: BigInt!
+}
+
+type Order @node(labels: ["Order", "Return"]) {
+	customer2SFirstOrder: [Customer2!]! @relationship(type: "FIRST_ORDER", direction: IN)
+	customer2SLastOrder: [Customer2!]! @relationship(type: "LAST_ORDER", direction: IN)
+	customer2SOrdered: [Customer2!]! @relationship(type: "ORDERED", direction: IN)
+	customersFirstOrder: [Customer!]! @relationship(type: "FIRST_ORDER", direction: IN)
+	customersLastOrder: [Customer!]! @relationship(type: "LAST_ORDER", direction: IN)
+	customersOrdered: [Customer!]! @relationship(type: "ORDERED", direction: IN)
+	invoiceDate: DateTime!
+	invoiceNo: String!
+	isCancelled: Boolean!
+	lineItemOrderLineItems: [OrderLineItem!]! @relationship(type: "LINE_ITEM", direction: OUT)
+	nextOrder2S: [Order2!]! @relationship(type: "NEXT", direction: OUT)
+	nextOrders: [Order!]! @relationship(type: "NEXT", direction: OUT)
+	order2SNext: [Order2!]! @relationship(type: "NEXT", direction: IN)
+	ordersNext: [Order!]! @relationship(type: "NEXT", direction: IN)
+}
+
+type Order2 @node(labels: ["Order"]) {
+	customer2SFirstOrder: [Customer2!]! @relationship(type: "FIRST_ORDER", direction: IN)
+	customer2SLastOrder: [Customer2!]! @relationship(type: "LAST_ORDER", direction: IN)
+	customer2SOrdered: [Customer2!]! @relationship(type: "ORDERED", direction: IN)
+	customersFirstOrder: [Customer!]! @relationship(type: "FIRST_ORDER", direction: IN)
+	customersLastOrder: [Customer!]! @relationship(type: "LAST_ORDER", direction: IN)
+	customersOrdered: [Customer!]! @relationship(type: "ORDERED", direction: IN)
+	invoiceDate: DateTime!
+	invoiceNo: String!
+	lineItemOrderLineItems: [OrderLineItem!]! @relationship(type: "LINE_ITEM", direction: OUT)
+	nextOrder2S: [Order2!]! @relationship(type: "NEXT", direction: OUT)
+	nextOrders: [Order!]! @relationship(type: "NEXT", direction: OUT)
+	order2SNext: [Order2!]! @relationship(type: "NEXT", direction: IN)
+	ordersNext: [Order!]! @relationship(type: "NEXT", direction: IN)
+}
+
+type OrderLineItem @node {
+	invoiceLineId: String!
+	isCancelled: Boolean
+	order2SLineItem: [Order2!]! @relationship(type: "LINE_ITEM", direction: IN)
+	ordersLineItem: [Order!]! @relationship(type: "LINE_ITEM", direction: IN)
+	productProducts: [Product!]! @relationship(type: "PRODUCT", direction: OUT)
+	quantity: BigInt!
+	unitPrice: Float!
+}
+
+type Outlier @node(labels: ["Outlier", "Phone", "ValidCommunity"]) {
+	customer2SAssocPhone: [Customer2!]! @relationship(type: "ASSOC_PHONE", direction: IN, properties: "AssocPhoneProperties")
+	phone: String!
+	wccId: BigInt!
+}
+
+type Phone @node(labels: ["Phone", "ValidCommunity"]) {
+	customer2SAssocPhone: [Customer2!]! @relationship(type: "ASSOC_PHONE", direction: IN, properties: "AssocPhoneProperties")
+	phone: String!
+	wccId: BigInt!
+}
+
+type Phone2 @node(labels: ["Phone"]) {
+	customersAssocPhone: [Customer!]! @relationship(type: "ASSOC_PHONE", direction: IN, properties: "AssocPhoneProperties")
+	phone: String!
+	wccId: BigInt!
+}
+
+type Product @node {
+	customer2SPurchased: [Customer2!]! @relationship(type: "PURCHASED", direction: IN, properties: "PurchasedProperties")
+	customersPurchased: [Customer!]! @relationship(type: "PURCHASED", direction: IN, properties: "PurchasedProperties")
+	description: String!
+	orderLineItemsProduct: [OrderLineItem!]! @relationship(type: "PRODUCT", direction: IN)
+	stockCode: String!
+}
+
+type PurchasedProperties @relationshipProperties {
+	totalPurchased: BigInt!
+}
+
+type SharedPiiProperties @relationshipProperties {
+	combinedScore: Float!
+	featureScore: Float!
+	firstNameScore: Float!
+	lastNameScore: Float!
+	nameScore: Float!
+}
+
+type SimilarPurchaseToProperties @relationshipProperties {
+	score: Float!
+}

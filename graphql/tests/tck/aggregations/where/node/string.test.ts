@@ -1,0 +1,1052 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Neo4jGraphQL } from "../../../../../src";
+import { formatCypher, formatParams, translateQuery } from "../../../utils/tck-test-utils";
+
+describe("Cypher Aggregations where node with String", () => {
+    let typeDefs: string;
+    let neoSchema: Neo4jGraphQL;
+
+    beforeAll(() => {
+        typeDefs = /* GraphQL */ `
+            type User @node {
+                name: String!
+                someStringAlias: String @alias(property: "_someStringAlias")
+            }
+
+            type Post @node {
+                content: String!
+                likes: [User!]! @relationship(type: "LIKES", direction: IN)
+            }
+        `;
+
+        neoSchema = new Neo4jGraphQL({
+            typeDefs,
+        });
+    });
+
+    test("SHORTEST_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN min(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN min(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN min(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN min(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN min(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN max(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN max(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN max(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN max(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN max(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("AVERAGE_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN avg(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN avg(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN avg(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN avg(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1:User)
+                RETURN avg(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+});
+
+describe("Cypher Aggregations where node with String interface relationships of concrete types", () => {
+    let typeDefs: string;
+    let neoSchema: Neo4jGraphQL;
+
+    beforeAll(() => {
+        typeDefs = /* GraphQL */ `
+            interface Human {
+                name: String!
+                someStringAlias: String
+            }
+
+            type User implements Human @node(labels: ["User", "Employee"]) {
+                name: String!
+                someStringAlias: String @alias(property: "_someStringAlias")
+            }
+
+            type Person implements Human @node {
+                name: String!
+                someStringAlias: String
+            }
+
+            type Post @node {
+                content: String!
+                likes: [Human!]! @relationship(type: "LIKES", direction: IN)
+            }
+        `;
+
+        neoSchema = new Neo4jGraphQL({
+            typeDefs,
+        });
+    });
+
+    test("SHORTEST_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN min(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN min(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN min(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN min(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("SHORTEST_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { shortestLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN min(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN max(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN max(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN max(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN max(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("LONGEST_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { longestLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN max(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": {
+                    \\"low\\": 10,
+                    \\"high\\": 0
+                }
+            }"
+        `);
+    });
+
+    test("AVERAGE_EQUAL", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { eq: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN avg(size(this1.name)) = $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_GT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { gt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN avg(size(this1.name)) > $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_GTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { gte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN avg(size(this1.name)) >= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_LT", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { lt: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN avg(size(this1.name)) < $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+
+    test("AVERAGE_LTE", async () => {
+        const query = /* GraphQL */ `
+            {
+                posts(where: { likesAggregate: { node: { name: { averageLength: { lte: 10 } } } } }) {
+                    content
+                }
+            }
+        `;
+
+        const result = await translateQuery(neoSchema, query);
+
+        expect(formatCypher(result.cypher)).toMatchInlineSnapshot(`
+            "CYPHER 5
+            MATCH (this:Post)
+            CALL (this) {
+                MATCH (this)<-[this0:LIKES]-(this1)
+                WHERE (this1:User:Employee OR this1:Person)
+                RETURN avg(size(this1.name)) <= $param0 AS var2
+            }
+            WITH *
+            WHERE var2 = true
+            RETURN this { .content } AS this"
+        `);
+
+        expect(formatParams(result.params)).toMatchInlineSnapshot(`
+            "{
+                \\"param0\\": 10
+            }"
+        `);
+    });
+});

@@ -1,0 +1,175 @@
+type Account @node(labels: ["Account", "External", "HighRiskJurisdiction"]) {
+	account3STransactedTo: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: IN, properties: "TransactedToProperties")
+	accountID: String!
+	accountNumber: String!
+	accountType: String!
+	louvainCommunity: BigInt!
+	pagerank: Float!
+	sentTransactions: [Transaction!]! @relationship(type: "SENT", direction: OUT)
+	transactedToAccount3S: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: OUT, properties: "TransactedToProperties")
+	transactionsReceived: [Transaction!]! @relationship(type: "RECEIVED", direction: IN)
+}
+
+type Account2 @node(labels: ["Account", "External"]) {
+	account3STransactedTo: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: IN, properties: "TransactedToProperties")
+	accountID: String!
+	accountNumber: String!
+	accountType: String!
+	louvainCommunity: BigInt!
+	pagerank: Float!
+	sentTransactions: [Transaction!]! @relationship(type: "SENT", direction: OUT)
+	transactedToAccount3S: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: OUT, properties: "TransactedToProperties")
+	transactionsReceived: [Transaction!]! @relationship(type: "RECEIVED", direction: IN)
+}
+
+type Account3 @node(labels: ["Account", "Internal"]) {
+	account2STransactedTo: [Account2!]! @relationship(type: "TRANSACTED_TO", direction: IN, properties: "TransactedToProperties")
+	account3STransactedTo: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: IN, properties: "TransactedToProperties")
+	accountID: String!
+	accountNumber: String!
+	accountType: String!
+	accountsTransactedTo: [Account!]! @relationship(type: "TRANSACTED_TO", direction: IN, properties: "TransactedToProperties")
+	balance: Float!
+	customersHasAccount: [Customer!]! @relationship(type: "HAS_ACCOUNT", direction: IN)
+	louvainCommunity: BigInt!
+	pagerank: Float!
+	sentTransactions: [Transaction!]! @relationship(type: "SENT", direction: OUT)
+	status: String!
+	transactedToAccount2S: [Account2!]! @relationship(type: "TRANSACTED_TO", direction: OUT, properties: "TransactedToProperties")
+	transactedToAccount3S: [Account3!]! @relationship(type: "TRANSACTED_TO", direction: OUT, properties: "TransactedToProperties")
+	transactedToAccounts: [Account!]! @relationship(type: "TRANSACTED_TO", direction: OUT, properties: "TransactedToProperties")
+	transactionsReceived: [Transaction!]! @relationship(type: "RECEIVED", direction: IN)
+}
+
+type Address @node {
+	addressID: String!
+	city: String!
+	country: String!
+	customersResidesAt: [Customer!]! @relationship(type: "RESIDES_AT", direction: IN)
+	locatedInJurisdictions: [Jurisdiction!]! @relationship(type: "LOCATED_IN", direction: OUT)
+	state: String!
+	street: String!
+}
+
+type Alert @node {
+	alertId: String!
+	hasPreviousStatusAlertStatuses: [AlertStatus!]! @relationship(type: "HAS_PREVIOUS_STATUS", direction: OUT, properties: "HasPreviousStatusProperties")
+	hasStatusAlertStatuses: [AlertStatus!]! @relationship(type: "HAS_STATUS", direction: OUT)
+	scenariosHasAlert: [Scenario!]! @relationship(type: "HAS_ALERT", direction: IN)
+}
+
+type AlertStatus @node {
+	alertId: String!
+	alertStatusesNext: [AlertStatus!]! @relationship(type: "NEXT", direction: IN)
+	alertStatusesNextAnalyst: [AlertStatus!]! @relationship(type: "NEXT_ANALYST", direction: IN)
+	alertStatusesNextSupervisor: [AlertStatus!]! @relationship(type: "NEXT_SUPERVISOR", direction: IN)
+	alertsHasPreviousStatus: [Alert!]! @relationship(type: "HAS_PREVIOUS_STATUS", direction: IN, properties: "HasPreviousStatusProperties")
+	alertsHasStatus: [Alert!]! @relationship(type: "HAS_STATUS", direction: IN)
+	nextAlertStatuses: [AlertStatus!]! @relationship(type: "NEXT", direction: OUT)
+	nextAnalystAlertStatuses: [AlertStatus!]! @relationship(type: "NEXT_ANALYST", direction: OUT)
+	nextSupervisorAlertStatuses: [AlertStatus!]! @relationship(type: "NEXT_SUPERVISOR", direction: OUT)
+	status: String!
+}
+
+type Country @node {
+	blackList: Boolean
+	countryId: String!
+	geo_point_2d_lat: Float!
+	geo_point_2d_lon: Float!
+	greyList: Boolean
+	is_ilomember: String!
+	is_receiving_quest: String!
+	iso2_code: String!
+	iso3_code: String!
+	jurisdictionsAssociatedWith: [Jurisdiction!]! @relationship(type: "ASSOCIATED_WITH", direction: IN)
+	label_en: String!
+	label_fr: String!
+	label_sp: String!
+	official_lang_code: String!
+	onu_code: String!
+}
+
+type Customer @node {
+	betweenness: Float!
+	customerID: String!
+	customersSharedIdentifiers: [Customer!]! @relationship(type: "SHARED_IDENTIFIERS", direction: IN, properties: "SharedIdentifiersProperties")
+	dateOfBirth: DateTime!
+	fraudFlag: String!
+	hasAccountAccount3S: [Account3!]! @relationship(type: "HAS_ACCOUNT", direction: OUT)
+	louvainCommunity: BigInt!
+	name: String!
+	pagerank: Float!
+	residesAtAddresses: [Address!]! @relationship(type: "RESIDES_AT", direction: OUT)
+	sharedIdentifiersCustomers: [Customer!]! @relationship(type: "SHARED_IDENTIFIERS", direction: OUT, properties: "SharedIdentifiersProperties")
+	usesEmailEmails: [Email!]! @relationship(type: "USES_EMAIL", direction: OUT)
+	usesPhonePhoneNumbers: [PhoneNumber!]! @relationship(type: "USES_PHONE", direction: OUT)
+}
+
+type Email @node {
+	customersUsesEmail: [Customer!]! @relationship(type: "USES_EMAIL", direction: IN)
+	emailAddress: String!
+	emailID: String!
+}
+
+type HasPreviousStatusProperties @relationshipProperties {
+	creationDate: DateTime!
+}
+
+type Jurisdiction @node {
+	addressesLocatedIn: [Address!]! @relationship(type: "LOCATED_IN", direction: IN)
+	associatedWithCountries: [Country!]! @relationship(type: "ASSOCIATED_WITH", direction: OUT)
+	jurisdictionID: String!
+	name: String!
+	riskLevel: String!
+}
+
+type PhoneNumber @node {
+	customersUsesPhone: [Customer!]! @relationship(type: "USES_PHONE", direction: IN)
+	number: String!
+	phoneNumberID: String!
+}
+
+type Scenario @node {
+	alertDetailQuery: String!
+	applicationDate: DateTime!
+	creationDate: DateTime!
+	frequency: String!
+	hasAlertAlerts: [Alert!]! @relationship(type: "HAS_ALERT", direction: OUT)
+	listAlertsQuery: String!
+	name: String!
+}
+
+type SharedIdentifiersProperties @relationshipProperties {
+	sharedCount: BigInt!
+	sharedRatio: Float!
+}
+
+type TransactedToProperties @relationshipProperties {
+	averageAmount: Float!
+	maxAmount: Float!
+	minAmount: Float!
+	totalAmount: Float!
+	transactionCount: BigInt!
+}
+
+type Transaction @node {
+	account2SSent: [Account2!]! @relationship(type: "SENT", direction: IN)
+	account3SSent: [Account3!]! @relationship(type: "SENT", direction: IN)
+	accountsSent: [Account!]! @relationship(type: "SENT", direction: IN)
+	date: DateTime!
+	receivedAccount2S: [Account2!]! @relationship(type: "RECEIVED", direction: OUT)
+	receivedAccount3S: [Account3!]! @relationship(type: "RECEIVED", direction: OUT)
+	receivedAccounts: [Account!]! @relationship(type: "RECEIVED", direction: OUT)
+	status: String!
+	transactionID: String!
+	type: String!
+}
+
+type _Neodash_Dashboard @node {
+	content: String!
+	date: DateTime!
+	title: String!
+	user: String!
+	uuid: String!
+	version: String!
+}

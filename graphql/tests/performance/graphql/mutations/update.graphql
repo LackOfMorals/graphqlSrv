@@ -1,0 +1,14 @@
+mutation NestedUpdate {
+    updateMovies(
+        where: { title_STARTS_WITH: "Sharknado" }
+        update: {
+            actors: {
+                update: { where: { node: { name_STARTS_WITH: "Sharknado" } }, node: { name: { set: "Updated name" } } }
+            }
+        }
+    ) {
+        movies {
+            title
+        }
+    }
+}

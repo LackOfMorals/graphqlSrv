@@ -1,0 +1,729 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { printSchemaWithDirectives } from "@graphql-tools/utils";
+import { gql } from "graphql-tag";
+import { lexicographicSortSchema } from "graphql/utilities";
+import { Neo4jGraphQL } from "../../../src";
+
+describe("https://github.com/neo4j/graphql/issues/872", () => {
+    test("a single type should be created for multiple actorOnCreate", async () => {
+        const typeDefs = gql`
+            type Movie @node {
+                title: String!
+                id: ID! @id
+            }
+
+            type Actor @node {
+                name: String!
+                movies: [Movie!]! @relationship(type: "ACTED_IN", direction: OUT)
+            }
+
+            type Actor2 @node {
+                name: String!
+                movies: [Movie!]! @relationship(type: "ACTED_IN", direction: OUT)
+            }
+        `;
+        const neoSchema = new Neo4jGraphQL({ typeDefs });
+        const printedSchema = printSchemaWithDirectives(lexicographicSortSchema(await neoSchema.getSchema()));
+
+        expect(printedSchema).toMatchInlineSnapshot(`
+            "schema {
+              query: Query
+              mutation: Mutation
+            }
+
+            type Actor {
+              movies(limit: Int, offset: Int, sort: [MovieSort!], where: MovieWhere): [Movie!]!
+              moviesConnection(after: String, first: Int, sort: [ActorMoviesConnectionSort!], where: ActorMoviesConnectionWhere): ActorMoviesConnection!
+              name: String!
+            }
+
+            type Actor2 {
+              movies(limit: Int, offset: Int, sort: [MovieSort!], where: MovieWhere): [Movie!]!
+              moviesConnection(after: String, first: Int, sort: [Actor2MoviesConnectionSort!], where: Actor2MoviesConnectionWhere): Actor2MoviesConnection!
+              name: String!
+            }
+
+            type Actor2Aggregate {
+              count: Count!
+              node: Actor2AggregateNode!
+            }
+
+            type Actor2AggregateNode {
+              name: StringAggregateSelection!
+            }
+
+            input Actor2CreateInput {
+              movies: Actor2MoviesFieldInput
+              name: String!
+            }
+
+            input Actor2DeleteInput {
+              movies: [Actor2MoviesDeleteFieldInput!]
+            }
+
+            type Actor2Edge {
+              cursor: String!
+              node: Actor2!
+            }
+
+            type Actor2MovieMoviesAggregateSelection {
+              count: CountConnection!
+              node: Actor2MovieMoviesNodeAggregateSelection
+            }
+
+            type Actor2MovieMoviesNodeAggregateSelection {
+              title: StringAggregateSelection!
+            }
+
+            input Actor2MoviesAggregateInput {
+              AND: [Actor2MoviesAggregateInput!]
+              NOT: Actor2MoviesAggregateInput
+              OR: [Actor2MoviesAggregateInput!]
+              count: IntScalarFilters
+              count_EQ: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { eq: ... } } }' instead.\\")
+              count_GT: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { gt: ... } } }' instead.\\")
+              count_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { gte: ... } } }' instead.\\")
+              count_LT: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { lt: ... } } }' instead.\\")
+              count_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { lte: ... } } }' instead.\\")
+              node: Actor2MoviesNodeAggregationWhereInput
+            }
+
+            input Actor2MoviesConnectFieldInput {
+              where: MovieConnectWhere
+            }
+
+            type Actor2MoviesConnection {
+              aggregate: Actor2MovieMoviesAggregateSelection!
+              edges: [Actor2MoviesRelationship!]!
+              pageInfo: PageInfo!
+              totalCount: Int!
+            }
+
+            input Actor2MoviesConnectionAggregateInput {
+              AND: [Actor2MoviesConnectionAggregateInput!]
+              NOT: Actor2MoviesConnectionAggregateInput
+              OR: [Actor2MoviesConnectionAggregateInput!]
+              count: ConnectionAggregationCountFilterInput
+              node: Actor2MoviesNodeAggregationWhereInput
+            }
+
+            input Actor2MoviesConnectionFilters {
+              \\"\\"\\"
+              Filter Actor2s by aggregating results on related Actor2MoviesConnections
+              \\"\\"\\"
+              aggregate: Actor2MoviesConnectionAggregateInput
+              \\"\\"\\"
+              Return Actor2s where all of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              all: Actor2MoviesConnectionWhere
+              \\"\\"\\"
+              Return Actor2s where none of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              none: Actor2MoviesConnectionWhere
+              \\"\\"\\"
+              Return Actor2s where one of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              single: Actor2MoviesConnectionWhere
+              \\"\\"\\"
+              Return Actor2s where some of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              some: Actor2MoviesConnectionWhere
+            }
+
+            input Actor2MoviesConnectionSort {
+              node: MovieSort
+            }
+
+            input Actor2MoviesConnectionWhere {
+              AND: [Actor2MoviesConnectionWhere!]
+              NOT: Actor2MoviesConnectionWhere
+              OR: [Actor2MoviesConnectionWhere!]
+              node: MovieWhere
+            }
+
+            input Actor2MoviesCreateFieldInput {
+              node: MovieCreateInput!
+            }
+
+            input Actor2MoviesDeleteFieldInput {
+              where: Actor2MoviesConnectionWhere
+            }
+
+            input Actor2MoviesDisconnectFieldInput {
+              where: Actor2MoviesConnectionWhere
+            }
+
+            input Actor2MoviesFieldInput {
+              connect: [Actor2MoviesConnectFieldInput!]
+              create: [Actor2MoviesCreateFieldInput!]
+            }
+
+            input Actor2MoviesNodeAggregationWhereInput {
+              AND: [Actor2MoviesNodeAggregationWhereInput!]
+              NOT: Actor2MoviesNodeAggregationWhereInput
+              OR: [Actor2MoviesNodeAggregationWhereInput!]
+              title: StringScalarAggregationFilters
+              title_AVERAGE_LENGTH_EQUAL: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { eq: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_GT: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { gt: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_GTE: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { gte: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_LT: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { lt: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_LTE: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { lte: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_EQUAL: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { eq: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_GT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { gt: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { gte: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_LT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { lt: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { lte: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_EQUAL: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { eq: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_GT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { gt: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { gte: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_LT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { lt: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { lte: ... } } }' instead.\\")
+            }
+
+            type Actor2MoviesRelationship {
+              cursor: String!
+              node: Movie!
+            }
+
+            input Actor2MoviesUpdateConnectionInput {
+              node: MovieUpdateInput
+              where: Actor2MoviesConnectionWhere
+            }
+
+            input Actor2MoviesUpdateFieldInput {
+              connect: [Actor2MoviesConnectFieldInput!]
+              create: [Actor2MoviesCreateFieldInput!]
+              delete: [Actor2MoviesDeleteFieldInput!]
+              disconnect: [Actor2MoviesDisconnectFieldInput!]
+              update: Actor2MoviesUpdateConnectionInput
+            }
+
+            \\"\\"\\"
+            Fields to sort Actor2s by. The order in which sorts are applied is not guaranteed when specifying many fields in one Actor2Sort object.
+            \\"\\"\\"
+            input Actor2Sort {
+              name: SortDirection
+            }
+
+            input Actor2UpdateInput {
+              movies: [Actor2MoviesUpdateFieldInput!]
+              name: StringScalarMutations
+              name_SET: String @deprecated(reason: \\"Please use the generic mutation 'name: { set: ... } }' instead.\\")
+            }
+
+            input Actor2Where {
+              AND: [Actor2Where!]
+              NOT: Actor2Where
+              OR: [Actor2Where!]
+              movies: MovieRelationshipFilters
+              moviesAggregate: Actor2MoviesAggregateInput @deprecated(reason: \\"Aggregate filters are moved inside the moviesConnection filter, please use { moviesConnection: { aggregate: {...} } } instead\\")
+              moviesConnection: Actor2MoviesConnectionFilters
+              \\"\\"\\"
+              Return Actor2s where all of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_ALL: Actor2MoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { all: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actor2s where none of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_NONE: Actor2MoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { none: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actor2s where one of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_SINGLE: Actor2MoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { single: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actor2s where some of the related Actor2MoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_SOME: Actor2MoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { some: { node: ... } } }' instead.\\")
+              \\"\\"\\"Return Actor2s where all of the related Movies match this filter\\"\\"\\"
+              movies_ALL: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: { all: ... }' instead.\\")
+              \\"\\"\\"Return Actor2s where none of the related Movies match this filter\\"\\"\\"
+              movies_NONE: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: { none: ... }' instead.\\")
+              \\"\\"\\"Return Actor2s where one of the related Movies match this filter\\"\\"\\"
+              movies_SINGLE: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: {  single: ... }' instead.\\")
+              \\"\\"\\"Return Actor2s where some of the related Movies match this filter\\"\\"\\"
+              movies_SOME: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: {  some: ... }' instead.\\")
+              name: StringScalarFilters
+              name_CONTAINS: String @deprecated(reason: \\"Please use the relevant generic filter name: { contains: ... }\\")
+              name_ENDS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter name: { endsWith: ... }\\")
+              name_EQ: String @deprecated(reason: \\"Please use the relevant generic filter name: { eq: ... }\\")
+              name_IN: [String!] @deprecated(reason: \\"Please use the relevant generic filter name: { in: ... }\\")
+              name_STARTS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter name: { startsWith: ... }\\")
+            }
+
+            type Actor2sConnection {
+              aggregate: Actor2Aggregate!
+              edges: [Actor2Edge!]!
+              pageInfo: PageInfo!
+              totalCount: Int!
+            }
+
+            type ActorAggregate {
+              count: Count!
+              node: ActorAggregateNode!
+            }
+
+            type ActorAggregateNode {
+              name: StringAggregateSelection!
+            }
+
+            input ActorCreateInput {
+              movies: ActorMoviesFieldInput
+              name: String!
+            }
+
+            input ActorDeleteInput {
+              movies: [ActorMoviesDeleteFieldInput!]
+            }
+
+            type ActorEdge {
+              cursor: String!
+              node: Actor!
+            }
+
+            type ActorMovieMoviesAggregateSelection {
+              count: CountConnection!
+              node: ActorMovieMoviesNodeAggregateSelection
+            }
+
+            type ActorMovieMoviesNodeAggregateSelection {
+              title: StringAggregateSelection!
+            }
+
+            input ActorMoviesAggregateInput {
+              AND: [ActorMoviesAggregateInput!]
+              NOT: ActorMoviesAggregateInput
+              OR: [ActorMoviesAggregateInput!]
+              count: IntScalarFilters
+              count_EQ: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { eq: ... } } }' instead.\\")
+              count_GT: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { gt: ... } } }' instead.\\")
+              count_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { gte: ... } } }' instead.\\")
+              count_LT: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { lt: ... } } }' instead.\\")
+              count_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter '{ count: { lte: ... } } }' instead.\\")
+              node: ActorMoviesNodeAggregationWhereInput
+            }
+
+            input ActorMoviesConnectFieldInput {
+              where: MovieConnectWhere
+            }
+
+            type ActorMoviesConnection {
+              aggregate: ActorMovieMoviesAggregateSelection!
+              edges: [ActorMoviesRelationship!]!
+              pageInfo: PageInfo!
+              totalCount: Int!
+            }
+
+            input ActorMoviesConnectionAggregateInput {
+              AND: [ActorMoviesConnectionAggregateInput!]
+              NOT: ActorMoviesConnectionAggregateInput
+              OR: [ActorMoviesConnectionAggregateInput!]
+              count: ConnectionAggregationCountFilterInput
+              node: ActorMoviesNodeAggregationWhereInput
+            }
+
+            input ActorMoviesConnectionFilters {
+              \\"\\"\\"Filter Actors by aggregating results on related ActorMoviesConnections\\"\\"\\"
+              aggregate: ActorMoviesConnectionAggregateInput
+              \\"\\"\\"
+              Return Actors where all of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              all: ActorMoviesConnectionWhere
+              \\"\\"\\"
+              Return Actors where none of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              none: ActorMoviesConnectionWhere
+              \\"\\"\\"
+              Return Actors where one of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              single: ActorMoviesConnectionWhere
+              \\"\\"\\"
+              Return Actors where some of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              some: ActorMoviesConnectionWhere
+            }
+
+            input ActorMoviesConnectionSort {
+              node: MovieSort
+            }
+
+            input ActorMoviesConnectionWhere {
+              AND: [ActorMoviesConnectionWhere!]
+              NOT: ActorMoviesConnectionWhere
+              OR: [ActorMoviesConnectionWhere!]
+              node: MovieWhere
+            }
+
+            input ActorMoviesCreateFieldInput {
+              node: MovieCreateInput!
+            }
+
+            input ActorMoviesDeleteFieldInput {
+              where: ActorMoviesConnectionWhere
+            }
+
+            input ActorMoviesDisconnectFieldInput {
+              where: ActorMoviesConnectionWhere
+            }
+
+            input ActorMoviesFieldInput {
+              connect: [ActorMoviesConnectFieldInput!]
+              create: [ActorMoviesCreateFieldInput!]
+            }
+
+            input ActorMoviesNodeAggregationWhereInput {
+              AND: [ActorMoviesNodeAggregationWhereInput!]
+              NOT: ActorMoviesNodeAggregationWhereInput
+              OR: [ActorMoviesNodeAggregationWhereInput!]
+              title: StringScalarAggregationFilters
+              title_AVERAGE_LENGTH_EQUAL: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { eq: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_GT: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { gt: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_GTE: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { gte: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_LT: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { lt: ... } } }' instead.\\")
+              title_AVERAGE_LENGTH_LTE: Float @deprecated(reason: \\"Please use the relevant generic filter 'title: { averageLength: { lte: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_EQUAL: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { eq: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_GT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { gt: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { gte: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_LT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { lt: ... } } }' instead.\\")
+              title_LONGEST_LENGTH_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { longestLength: { lte: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_EQUAL: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { eq: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_GT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { gt: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_GTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { gte: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_LT: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { lt: ... } } }' instead.\\")
+              title_SHORTEST_LENGTH_LTE: Int @deprecated(reason: \\"Please use the relevant generic filter 'title: { shortestLength: { lte: ... } } }' instead.\\")
+            }
+
+            type ActorMoviesRelationship {
+              cursor: String!
+              node: Movie!
+            }
+
+            input ActorMoviesUpdateConnectionInput {
+              node: MovieUpdateInput
+              where: ActorMoviesConnectionWhere
+            }
+
+            input ActorMoviesUpdateFieldInput {
+              connect: [ActorMoviesConnectFieldInput!]
+              create: [ActorMoviesCreateFieldInput!]
+              delete: [ActorMoviesDeleteFieldInput!]
+              disconnect: [ActorMoviesDisconnectFieldInput!]
+              update: ActorMoviesUpdateConnectionInput
+            }
+
+            \\"\\"\\"
+            Fields to sort Actors by. The order in which sorts are applied is not guaranteed when specifying many fields in one ActorSort object.
+            \\"\\"\\"
+            input ActorSort {
+              name: SortDirection
+            }
+
+            input ActorUpdateInput {
+              movies: [ActorMoviesUpdateFieldInput!]
+              name: StringScalarMutations
+              name_SET: String @deprecated(reason: \\"Please use the generic mutation 'name: { set: ... } }' instead.\\")
+            }
+
+            input ActorWhere {
+              AND: [ActorWhere!]
+              NOT: ActorWhere
+              OR: [ActorWhere!]
+              movies: MovieRelationshipFilters
+              moviesAggregate: ActorMoviesAggregateInput @deprecated(reason: \\"Aggregate filters are moved inside the moviesConnection filter, please use { moviesConnection: { aggregate: {...} } } instead\\")
+              moviesConnection: ActorMoviesConnectionFilters
+              \\"\\"\\"
+              Return Actors where all of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_ALL: ActorMoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { all: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actors where none of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_NONE: ActorMoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { none: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actors where one of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_SINGLE: ActorMoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { single: { node: ... } } }' instead.\\")
+              \\"\\"\\"
+              Return Actors where some of the related ActorMoviesConnections match this filter
+              \\"\\"\\"
+              moviesConnection_SOME: ActorMoviesConnectionWhere @deprecated(reason: \\"Please use the relevant generic filter 'moviesConnection: { some: { node: ... } } }' instead.\\")
+              \\"\\"\\"Return Actors where all of the related Movies match this filter\\"\\"\\"
+              movies_ALL: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: { all: ... }' instead.\\")
+              \\"\\"\\"Return Actors where none of the related Movies match this filter\\"\\"\\"
+              movies_NONE: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: { none: ... }' instead.\\")
+              \\"\\"\\"Return Actors where one of the related Movies match this filter\\"\\"\\"
+              movies_SINGLE: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: {  single: ... }' instead.\\")
+              \\"\\"\\"Return Actors where some of the related Movies match this filter\\"\\"\\"
+              movies_SOME: MovieWhere @deprecated(reason: \\"Please use the relevant generic filter 'movies: {  some: ... }' instead.\\")
+              name: StringScalarFilters
+              name_CONTAINS: String @deprecated(reason: \\"Please use the relevant generic filter name: { contains: ... }\\")
+              name_ENDS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter name: { endsWith: ... }\\")
+              name_EQ: String @deprecated(reason: \\"Please use the relevant generic filter name: { eq: ... }\\")
+              name_IN: [String!] @deprecated(reason: \\"Please use the relevant generic filter name: { in: ... }\\")
+              name_STARTS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter name: { startsWith: ... }\\")
+            }
+
+            type ActorsConnection {
+              aggregate: ActorAggregate!
+              edges: [ActorEdge!]!
+              pageInfo: PageInfo!
+              totalCount: Int!
+            }
+
+            input ConnectionAggregationCountFilterInput {
+              edges: IntScalarFilters
+              nodes: IntScalarFilters
+            }
+
+            type Count {
+              nodes: Int!
+            }
+
+            type CountConnection {
+              edges: Int!
+              nodes: Int!
+            }
+
+            type CreateActor2sMutationResponse {
+              actor2s: [Actor2!]!
+              info: CreateInfo!
+            }
+
+            type CreateActorsMutationResponse {
+              actors: [Actor!]!
+              info: CreateInfo!
+            }
+
+            \\"\\"\\"
+            Information about the number of nodes and relationships created during a create mutation
+            \\"\\"\\"
+            type CreateInfo {
+              nodesCreated: Int!
+              relationshipsCreated: Int!
+            }
+
+            type CreateMoviesMutationResponse {
+              info: CreateInfo!
+              movies: [Movie!]!
+            }
+
+            \\"\\"\\"
+            Information about the number of nodes and relationships deleted during a delete mutation
+            \\"\\"\\"
+            type DeleteInfo {
+              nodesDeleted: Int!
+              relationshipsDeleted: Int!
+            }
+
+            \\"\\"\\"Float filters\\"\\"\\"
+            input FloatScalarFilters {
+              eq: Float
+              gt: Float
+              gte: Float
+              in: [Float!]
+              lt: Float
+              lte: Float
+            }
+
+            \\"\\"\\"ID filters\\"\\"\\"
+            input IDScalarFilters {
+              contains: ID
+              endsWith: ID
+              eq: ID
+              in: [ID!]
+              startsWith: ID
+            }
+
+            \\"\\"\\"Int filters\\"\\"\\"
+            input IntScalarFilters {
+              eq: Int
+              gt: Int
+              gte: Int
+              in: [Int!]
+              lt: Int
+              lte: Int
+            }
+
+            type Movie {
+              id: ID!
+              title: String!
+            }
+
+            type MovieAggregate {
+              count: Count!
+              node: MovieAggregateNode!
+            }
+
+            type MovieAggregateNode {
+              title: StringAggregateSelection!
+            }
+
+            input MovieConnectWhere {
+              node: MovieWhere!
+            }
+
+            input MovieCreateInput {
+              title: String!
+            }
+
+            type MovieEdge {
+              cursor: String!
+              node: Movie!
+            }
+
+            input MovieRelationshipFilters {
+              \\"\\"\\"Filter type where all of the related Movies match this filter\\"\\"\\"
+              all: MovieWhere
+              \\"\\"\\"Filter type where none of the related Movies match this filter\\"\\"\\"
+              none: MovieWhere
+              \\"\\"\\"Filter type where one of the related Movies match this filter\\"\\"\\"
+              single: MovieWhere
+              \\"\\"\\"Filter type where some of the related Movies match this filter\\"\\"\\"
+              some: MovieWhere
+            }
+
+            \\"\\"\\"
+            Fields to sort Movies by. The order in which sorts are applied is not guaranteed when specifying many fields in one MovieSort object.
+            \\"\\"\\"
+            input MovieSort {
+              id: SortDirection
+              title: SortDirection
+            }
+
+            input MovieUpdateInput {
+              title: StringScalarMutations
+              title_SET: String @deprecated(reason: \\"Please use the generic mutation 'title: { set: ... } }' instead.\\")
+            }
+
+            input MovieWhere {
+              AND: [MovieWhere!]
+              NOT: MovieWhere
+              OR: [MovieWhere!]
+              id: IDScalarFilters
+              id_CONTAINS: ID @deprecated(reason: \\"Please use the relevant generic filter id: { contains: ... }\\")
+              id_ENDS_WITH: ID @deprecated(reason: \\"Please use the relevant generic filter id: { endsWith: ... }\\")
+              id_EQ: ID @deprecated(reason: \\"Please use the relevant generic filter id: { eq: ... }\\")
+              id_IN: [ID!] @deprecated(reason: \\"Please use the relevant generic filter id: { in: ... }\\")
+              id_STARTS_WITH: ID @deprecated(reason: \\"Please use the relevant generic filter id: { startsWith: ... }\\")
+              title: StringScalarFilters
+              title_CONTAINS: String @deprecated(reason: \\"Please use the relevant generic filter title: { contains: ... }\\")
+              title_ENDS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter title: { endsWith: ... }\\")
+              title_EQ: String @deprecated(reason: \\"Please use the relevant generic filter title: { eq: ... }\\")
+              title_IN: [String!] @deprecated(reason: \\"Please use the relevant generic filter title: { in: ... }\\")
+              title_STARTS_WITH: String @deprecated(reason: \\"Please use the relevant generic filter title: { startsWith: ... }\\")
+            }
+
+            type MoviesConnection {
+              aggregate: MovieAggregate!
+              edges: [MovieEdge!]!
+              pageInfo: PageInfo!
+              totalCount: Int!
+            }
+
+            type Mutation {
+              createActor2s(input: [Actor2CreateInput!]!): CreateActor2sMutationResponse!
+              createActors(input: [ActorCreateInput!]!): CreateActorsMutationResponse!
+              createMovies(input: [MovieCreateInput!]!): CreateMoviesMutationResponse!
+              deleteActor2s(delete: Actor2DeleteInput, where: Actor2Where): DeleteInfo!
+              deleteActors(delete: ActorDeleteInput, where: ActorWhere): DeleteInfo!
+              deleteMovies(where: MovieWhere): DeleteInfo!
+              updateActor2s(update: Actor2UpdateInput, where: Actor2Where): UpdateActor2sMutationResponse!
+              updateActors(update: ActorUpdateInput, where: ActorWhere): UpdateActorsMutationResponse!
+              updateMovies(update: MovieUpdateInput, where: MovieWhere): UpdateMoviesMutationResponse!
+            }
+
+            \\"\\"\\"Pagination information (Relay)\\"\\"\\"
+            type PageInfo {
+              endCursor: String
+              hasNextPage: Boolean!
+              hasPreviousPage: Boolean!
+              startCursor: String
+            }
+
+            type Query {
+              actor2s(limit: Int, offset: Int, sort: [Actor2Sort!], where: Actor2Where): [Actor2!]!
+              actor2sConnection(after: String, first: Int, sort: [Actor2Sort!], where: Actor2Where): Actor2sConnection!
+              actors(limit: Int, offset: Int, sort: [ActorSort!], where: ActorWhere): [Actor!]!
+              actorsConnection(after: String, first: Int, sort: [ActorSort!], where: ActorWhere): ActorsConnection!
+              movies(limit: Int, offset: Int, sort: [MovieSort!], where: MovieWhere): [Movie!]!
+              moviesConnection(after: String, first: Int, sort: [MovieSort!], where: MovieWhere): MoviesConnection!
+            }
+
+            \\"\\"\\"An enum for sorting in either ascending or descending order.\\"\\"\\"
+            enum SortDirection {
+              \\"\\"\\"Sort by field values in ascending order.\\"\\"\\"
+              ASC
+              \\"\\"\\"Sort by field values in descending order.\\"\\"\\"
+              DESC
+            }
+
+            type StringAggregateSelection {
+              longest: String
+              shortest: String
+            }
+
+            \\"\\"\\"Filters for an aggregation of a string field\\"\\"\\"
+            input StringScalarAggregationFilters {
+              averageLength: FloatScalarFilters
+              longestLength: IntScalarFilters
+              shortestLength: IntScalarFilters
+            }
+
+            \\"\\"\\"String filters\\"\\"\\"
+            input StringScalarFilters {
+              contains: String
+              endsWith: String
+              eq: String
+              in: [String!]
+              startsWith: String
+            }
+
+            \\"\\"\\"String mutations\\"\\"\\"
+            input StringScalarMutations {
+              set: String
+            }
+
+            type UpdateActor2sMutationResponse {
+              actor2s: [Actor2!]!
+              info: UpdateInfo!
+            }
+
+            type UpdateActorsMutationResponse {
+              actors: [Actor!]!
+              info: UpdateInfo!
+            }
+
+            \\"\\"\\"
+            Information about the number of nodes and relationships created and deleted during an update mutation
+            \\"\\"\\"
+            type UpdateInfo {
+              nodesCreated: Int!
+              nodesDeleted: Int!
+              relationshipsCreated: Int!
+              relationshipsDeleted: Int!
+            }
+
+            type UpdateMoviesMutationResponse {
+              info: UpdateInfo!
+              movies: [Movie!]!
+            }"
+        `);
+    });
+});

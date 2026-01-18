@@ -1,0 +1,84 @@
+query TopLevelAggregateWithMultipleFields {
+    peopleConnection {
+        aggregate {
+            count {
+                nodes
+            }
+            node {
+                name {
+                    shortest
+                }
+                born {
+                    max
+                }
+            }
+        }
+    }
+}
+
+query NestedAggregation {
+    people {
+        name
+        moviesConnection {
+            aggregate {
+                node {
+                    title {
+                        longest
+                    }
+                }
+            }
+        }
+    }
+}
+
+query AggregationWithWhere {
+    people(where: { moviesConnection: { aggregate: { count: { nodes: { eq: 2 } } } } }) {
+        name
+    }
+}
+
+query AggregationWhereWithinNestedRelationships {
+    people(where: { movies_SOME: { actors_ALL: { moviesAggregate: { count_GT: 1 } } } }) {
+        name
+    }
+}
+
+query AggregationWhereWithinNestedConnections {
+    people(
+        where: {
+            moviesConnection_SOME: { node: { actorsConnection_ALL: { node: { moviesAggregate: { count_GT: 1 } } } } }
+        }
+    ) {
+        name
+    }
+}
+
+query InterfacesAggregations {
+    movieLikesConnection {
+        aggregate {
+            node {
+                title {
+                    longest
+                    shortest
+                }
+            }
+        }
+    }
+}
+
+query InterfacesAggregationsWithTwoFields {
+    movieLikesConnection {
+        aggregate {
+            node {
+                title {
+                    longest
+                    shortest
+                }
+                released {
+                    max
+                    min
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,226 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { UniqueType } from "../../utils/graphql-types";
+import { TestHelper } from "../../utils/tests-helper";
+
+describe("Relationship properties - connect on union", () => {
+    let Movie: UniqueType;
+    let Actor: UniqueType;
+    let Show: UniqueType;
+    let testHelper: TestHelper;
+
+    beforeEach(async () => {
+        testHelper = new TestHelper();
+        Movie = testHelper.createUniqueType("Movie");
+        Actor = testHelper.createUniqueType("Actor");
+        Show = testHelper.createUniqueType("Show");
+
+        const typeDefs = /* GraphQL */ `
+            type ${Movie} @node {
+                title: String!
+            }
+
+            type ${Show} @node {
+                name: String!
+            }
+
+            type ${Actor} @node {
+                name: String!
+                actedIn: [ActedInUnion!]!
+                    @relationship(type: "ACTED_IN", properties: "ActedInInterface", direction: OUT)
+            }
+
+            union ActedInUnion = ${Movie} | ${Show}
+
+            type ActedInInterface @relationshipProperties {
+                screenTime: Int!
+            }
+        `;
+        await testHelper.initNeo4jGraphQL({ typeDefs });
+    });
+
+    afterEach(async () => {
+        await testHelper.close();
+    });
+
+    test("should create an actor while connecting a relationship that has properties", async () => {
+        const movieTitle = "Scent of a Koala";
+        const actorName = "Mofli";
+        const screenTime = 560;
+
+        const source = /* GraphQL */ `
+            mutation ($movieTitle: String!, $screenTime: Int!, $actorName: String!) {
+                ${Actor.operations.create}(
+                    input: [
+                        {
+                            name: $actorName
+                            actedIn: {
+                                ${Movie}: {
+                                    connect: {
+                                        where: { node: { title_EQ: $movieTitle } }
+                                        edge: { screenTime: $screenTime }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                ) {
+                    ${Actor.plural} {
+                        name
+                    }
+                }
+            }
+        `;
+
+        await testHelper.executeCypher(
+            `
+                    CREATE (:${Movie} {title:$movieTitle})
+                `,
+            { movieTitle }
+        );
+
+        const gqlResult = await testHelper.executeGraphQL(source, {
+            variableValues: { movieTitle, actorName, screenTime },
+        });
+        expect(gqlResult.errors).toBeFalsy();
+        expect((gqlResult.data as any)[Actor.operations.create][Actor.plural]).toEqual([
+            {
+                name: actorName,
+            },
+        ]);
+
+        const neo4jResult = await testHelper.executeCypher(
+            `
+                MATCH (a:${Actor} {name: $actorName})-[:ACTED_IN {screenTime: $screenTime}]->(:${Movie} {title: $movieTitle})
+                RETURN a
+            `,
+            { movieTitle, screenTime, actorName }
+        );
+        expect(neo4jResult.records).toHaveLength(1);
+    });
+
+    test("should update an actor while connecting a relationship that has properties(with Union)", async () => {
+        const movieTitle = "Scent of a Robot";
+        const actorName = "Marvin";
+        const screenTime = 60;
+
+        const source = /* GraphQL */ `
+            mutation($movieTitle: String!, $screenTime: Int!, $actorName: String!) {
+                ${Actor.operations.update}(
+                    where: { name_EQ: $actorName }
+                    update: {
+                        actedIn: {
+                            ${Movie}: {
+                                connect: {
+                                    where: { node: { title_EQ: $movieTitle } }
+                                    edge: { screenTime: $screenTime }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    ${Actor.plural} {
+                        name
+                    }
+                }
+            }
+        `;
+
+        await testHelper.executeCypher(
+            `
+                    CREATE (:${Movie} {title:$movieTitle})
+                    CREATE (:${Actor} {name:$actorName})
+                `,
+            { movieTitle, actorName }
+        );
+
+        const gqlResult = await testHelper.executeGraphQL(source, {
+            variableValues: { movieTitle, actorName, screenTime },
+        });
+        expect(gqlResult.errors).toBeFalsy();
+        expect((gqlResult.data as any)[Actor.operations.update][Actor.plural]).toEqual([
+            {
+                name: actorName,
+            },
+        ]);
+
+        const cypher = `
+                MATCH (a:${Actor} {name: $actorName})-[:ACTED_IN {screenTime: $screenTime}]->(:${Movie} {title: $movieTitle})
+                RETURN a
+            `;
+
+        const neo4jResult = await testHelper.executeCypher(cypher, { movieTitle, screenTime, actorName });
+        expect(neo4jResult.records).toHaveLength(1);
+    });
+
+    test("should update an actor while connecting an existing relationship that has properties(with Union)", async () => {
+        const movieTitle = "The Woman in Purple";
+        const actorName = "Dan Rad";
+        const screenTime = 190;
+
+        const source = /* GraphQL */ `
+            mutation($movieTitle: String!, $screenTime: Int!, $actorName: String!) {
+                ${Actor.operations.update}(
+                    where: { name_EQ: $actorName }
+                    update: {
+                        actedIn: {
+                            ${Movie}: {
+                                connect: {
+                                    where: { node: { title_EQ: $movieTitle } }
+                                    edge: { screenTime: $screenTime }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    ${Actor.plural} {
+                        name
+                    }
+                }
+            }
+        `;
+
+        await testHelper.executeCypher(
+            `
+                    CREATE (:${Movie} {title:$movieTitle})
+                    CREATE (:${Actor} {name:$actorName})-[:ACTED_IN {screenTime: 0}]->(:${Movie} {title: $movieTitle})
+                `,
+            { movieTitle, actorName }
+        );
+
+        const gqlResult = await testHelper.executeGraphQL(source, {
+            variableValues: { movieTitle, actorName, screenTime },
+        });
+        expect(gqlResult.errors).toBeFalsy();
+        expect((gqlResult.data as any)[Actor.operations.update][Actor.plural]).toEqual([
+            {
+                name: actorName,
+            },
+        ]);
+
+        const cypher = `
+                MATCH (a:${Actor} {name: $actorName})-[:ACTED_IN {screenTime: $screenTime}]->(:${Movie} {title: $movieTitle})
+                RETURN a
+            `;
+
+        const neo4jResult = await testHelper.executeCypher(cypher, { movieTitle, screenTime, actorName });
+        expect(neo4jResult.records).toHaveLength(2);
+    });
+});

@@ -1,0 +1,287 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import Cypher from "@neo4j/cypher-builder";
+import type { AuthorizationOperation } from "../../../schema-model/annotation/AuthorizationAnnotation";
+import type { AttributeAdapter } from "../../../schema-model/attribute/model-adapters/AttributeAdapter";
+import type { ConcreteEntityAdapter } from "../../../schema-model/entity/model-adapters/ConcreteEntityAdapter";
+import type { InterfaceEntityAdapter } from "../../../schema-model/entity/model-adapters/InterfaceEntityAdapter";
+import type { RelationshipAdapter } from "../../../schema-model/relationship/model-adapters/RelationshipAdapter";
+import { getEntityAdapter } from "../../../schema-model/utils/get-entity-adapter";
+import type { GraphQLWhereArg } from "../../../types";
+import type { Neo4jGraphQLTranslationContext } from "../../../types/neo4j-graphql-translation-context";
+import { asArray } from "../../../utils/utils";
+import { isLogicalOperator } from "../../utils/logical-operators";
+import type { ConnectionFilter } from "../ast/filters/ConnectionFilter";
+
+import type { Filter, FilterOperator, RelationshipWhereOperator } from "../ast/filters/Filter";
+import { isLegacyRelationshipOperator } from "../ast/filters/Filter";
+import { LogicalFilter } from "../ast/filters/LogicalFilter";
+import type { RelationshipFilter } from "../ast/filters/RelationshipFilter";
+import { AuthConnectionFilter } from "../ast/filters/authorization-filters/AuthConnectionFilter";
+import { AuthRelationshipFilter } from "../ast/filters/authorization-filters/AuthRelationshipFilter";
+import { JWTFilter } from "../ast/filters/authorization-filters/JWTFilter";
+import { CypherFilter } from "../ast/filters/property-filters/CypherFilter";
+import { ParamPropertyFilter } from "../ast/filters/property-filters/ParamPropertyFilter";
+import { PropertyFilter } from "../ast/filters/property-filters/PropertyFilter";
+import { CustomCypherSelection } from "../ast/selection/CustomCypherSelection";
+import { FilterFactory } from "./FilterFactory";
+import { parseWhereField } from "./parsers/parse-where-field";
+
+export class AuthFilterFactory extends FilterFactory {
+    // PopulatedWhere has the values as Cypher variables
+    public createAuthFilters({
+        entity,
+        operations,
+        context,
+        populatedWhere,
+    }: {
+        entity: ConcreteEntityAdapter;
+        operations: AuthorizationOperation[];
+        context: Neo4jGraphQLTranslationContext;
+        populatedWhere: GraphQLWhereArg;
+    }): Filter[] {
+        return Object.entries(populatedWhere).flatMap(([key, value]): Filter[] => {
+            if (isLogicalOperator(key)) {
+                const nestedFilters = value.flatMap((v) => {
+                    return this.createAuthFilters({
+                        entity,
+                        operations,
+                        context,
+                        populatedWhere: v,
+                    });
+                });
+
+                return [
+                    new LogicalFilter({
+                        operation: key,
+                        filters: nestedFilters,
+                    }),
+                ];
+            }
+
+            if (key === "node") {
+                return this.createNodeFilters(entity, value);
+            } else if (key === "jwt") {
+                return this.createJWTFilters(context.authorization.jwtParam, value, context);
+            }
+
+            return [];
+        });
+    }
+
+    private createJWTFilters(
+        jwtPayload: Cypher.Param,
+        where: GraphQLWhereArg,
+        context: Neo4jGraphQLTranslationContext
+    ): Filter[] {
+        return Object.entries(where).flatMap(([key, value]) => {
+            if (isLogicalOperator(key)) {
+                const nestedFilters = asArray(value).flatMap((v) => {
+                    return this.createJWTFilters(jwtPayload, v, context);
+                });
+
+                return new LogicalFilter({
+                    operation: key,
+                    filters: nestedFilters,
+                });
+            }
+            const { fieldName, operator } = parseWhereField(key);
+            if (!fieldName) {
+                throw new Error(`Failed to find field name in filter: ${key}`);
+            }
+
+            const mappedJwtClaim = context.authorization.claims?.get(fieldName);
+
+            let target: Cypher.Property = jwtPayload.property(fieldName);
+
+            if (mappedJwtClaim) {
+                // TODO: validate browser compatibility for Toolbox (https://caniuse.com/?search=Lookbehind)
+                let paths = mappedJwtClaim.split(/(?<!\\)\./);
+
+                paths = paths.map((p) => p.replaceAll(/\\\./g, "."));
+
+                target = jwtPayload.property(...paths);
+            }
+            if (!operator) {
+                return this.wrapMultipleFiltersInLogical(this.getGenericJWTFilters(value, target));
+            }
+            return new JWTFilter({
+                operator: operator,
+                JWTClaim: target,
+                comparisonValue: value,
+            });
+        });
+    }
+
+    private getGenericJWTFilters(genericOperator: Record<string, any>, target: Cypher.Property): JWTFilter[] {
+        return Object.entries(genericOperator).map(([key, value]): JWTFilter => {
+            const operator = this.parseGenericOperator(key);
+            return new JWTFilter({
+                operator,
+                JWTClaim: target,
+                comparisonValue: value,
+            });
+        });
+    }
+
+    protected createPropertyFilter({
+        attribute,
+        comparisonValue,
+        operator,
+        attachedTo,
+        relationship,
+        caseInsensitive,
+    }: {
+        attribute: AttributeAdapter;
+        comparisonValue: unknown;
+        operator: FilterOperator | undefined;
+        attachedTo?: "node" | "relationship";
+        relationship?: RelationshipAdapter;
+        caseInsensitive?: boolean;
+    }): Filter {
+        const isCypherVariable =
+            comparisonValue instanceof Cypher.Variable ||
+            comparisonValue instanceof Cypher.Property ||
+            comparisonValue instanceof Cypher.Param;
+
+        if (attribute.annotations.cypher) {
+            const selection = new CustomCypherSelection({
+                operationField: attribute,
+                rawArguments: {},
+                isNested: true,
+            });
+
+            if (attribute.annotations.cypher?.targetEntity) {
+                const entityAdapter = getEntityAdapter(attribute.annotations.cypher.targetEntity);
+
+                if (operator && !isLegacyRelationshipOperator(operator)) {
+                    throw new Error(`Invalid operator ${operator} for relationship`);
+                }
+                // path for generic filters input, in v8 it will be the only path
+                if (!operator && attribute.typeHelper.isList()) {
+                    const genericFilters = Object.entries(comparisonValue as any).flatMap(([quantifier, predicate]) => {
+                        const legacyOperator = this.convertRelationshipOperatorToLegacyOperator(quantifier);
+                        return this.createCypherRelationshipFilter({
+                            where: predicate as any,
+                            selection,
+                            target: entityAdapter,
+                            operator: legacyOperator,
+                            attribute,
+                        });
+                    });
+                    return new LogicalFilter({
+                        operation: "AND",
+                        filters: genericFilters,
+                    });
+                }
+
+                return new LogicalFilter({
+                    operation: "AND",
+                    filters: this.createCypherRelationshipFilter({
+                        where: comparisonValue as GraphQLWhereArg,
+                        selection,
+                        target: entityAdapter,
+                        operator,
+                        attribute,
+                    }),
+                });
+            }
+
+            if (isCypherVariable) {
+                return new CypherFilter({
+                    selection,
+                    attribute,
+                    comparisonValue: comparisonValue,
+                    operator: operator ?? "EQ",
+                    checkIsNotNull: true,
+                });
+            }
+
+            const comparisonValueParam = new Cypher.Param(comparisonValue);
+
+            return new CypherFilter({
+                selection,
+                attribute,
+                comparisonValue: comparisonValueParam,
+                operator: operator ?? "EQ",
+            });
+        }
+        if (!operator) {
+            throw new Error(`Operator is required for property filter`);
+        }
+        // This is probably not needed, but avoid changing the cypher
+        if (typeof comparisonValue === "boolean") {
+            return new ParamPropertyFilter({
+                attribute,
+                relationship,
+                comparisonValue: new Cypher.Param(comparisonValue),
+                operator,
+                attachedTo,
+                caseInsensitive,
+            });
+        }
+
+        if (isCypherVariable) {
+            return new ParamPropertyFilter({
+                attribute,
+                relationship,
+                comparisonValue: comparisonValue,
+                operator,
+                attachedTo,
+                caseInsensitive,
+            });
+        } else {
+            if (comparisonValue === null) {
+                return new PropertyFilter({
+                    attribute,
+                    relationship,
+                    comparisonValue: comparisonValue,
+                    operator,
+                    attachedTo,
+                    caseInsensitive,
+                });
+            }
+            return new ParamPropertyFilter({
+                attribute,
+                relationship,
+                comparisonValue: new Cypher.Param(comparisonValue),
+                operator,
+                attachedTo,
+                caseInsensitive,
+            });
+        }
+    }
+
+    protected createRelationshipFilterTreeNode(options: {
+        relationship: RelationshipAdapter;
+        target: ConcreteEntityAdapter | InterfaceEntityAdapter;
+        operator: RelationshipWhereOperator;
+    }): RelationshipFilter {
+        return new AuthRelationshipFilter(options);
+    }
+
+    protected createConnectionFilterTreeNode(options: {
+        relationship: RelationshipAdapter;
+        target: ConcreteEntityAdapter | InterfaceEntityAdapter;
+        operator: RelationshipWhereOperator;
+    }): ConnectionFilter {
+        return new AuthConnectionFilter(options);
+    }
+}

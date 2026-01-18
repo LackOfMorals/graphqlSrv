@@ -1,0 +1,150 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { GraphQLInt, GraphQLNonNull, GraphQLString, type DirectiveNode, type GraphQLResolveInfo } from "graphql";
+import type { Directive, ObjectTypeComposerArgumentConfigMapDefinition, SchemaComposer } from "graphql-compose";
+
+import type { Subgraph } from "../../classes/Subgraph";
+import { DEPRECATED } from "../../constants";
+import { InterfaceEntityAdapter } from "../../schema-model/entity/model-adapters/InterfaceEntityAdapter";
+import { UnionEntityAdapter } from "../../schema-model/entity/model-adapters/UnionEntityAdapter";
+import { RelationshipAdapter } from "../../schema-model/relationship/model-adapters/RelationshipAdapter";
+import type { RelationshipDeclarationAdapter } from "../../schema-model/relationship/model-adapters/RelationshipDeclarationAdapter";
+import type { ConnectionQueryArgs, Neo4jFeaturesSettings } from "../../types";
+import { connectionFieldResolver } from "../pagination";
+import { graphqlDirectivesToCompose } from "../to-compose";
+import { withConnectionObjectType } from "./connection-object-type";
+import { makeConnectionWhereInputType, withConnectionSortInputType } from "./connection-where-input";
+import { makeSortInput } from "./sort-and-options-input";
+
+export function augmentObjectOrInterfaceTypeWithRelationshipField({
+    relationshipAdapter,
+    userDefinedFieldDirectives,
+    subgraph,
+    composer,
+    features,
+}: {
+    relationshipAdapter: RelationshipAdapter | RelationshipDeclarationAdapter;
+    userDefinedFieldDirectives: Map<string, DirectiveNode[]>;
+    subgraph?: Subgraph | undefined;
+    composer: SchemaComposer;
+    features: Neo4jFeaturesSettings | undefined;
+}): Record<string, { type: string; description?: string; directives: Directive[]; args?: any }> {
+    const fields = {};
+    const relationshipField: { type: string; description?: string; directives: Directive[]; args?: any } = {
+        type: relationshipAdapter.operations.getTargetTypePrettyName(),
+        description: relationshipAdapter.description,
+        directives: graphqlDirectivesToCompose(userDefinedFieldDirectives.get(relationshipAdapter.name) || []),
+    };
+
+    let generateRelFieldArgs = true;
+
+    // Subgraph schemas do not support arguments on relationship fields (singular)
+    if (subgraph) {
+        if (!relationshipAdapter.isList) {
+            generateRelFieldArgs = false;
+        }
+    }
+
+    if (generateRelFieldArgs) {
+        const relationshipTarget =
+            relationshipAdapter instanceof RelationshipAdapter && relationshipAdapter.originalTarget
+                ? relationshipAdapter.originalTarget
+                : relationshipAdapter.target;
+
+        const whereTypeName = relationshipTarget.operations.whereInputTypeName;
+
+        const nodeFieldsArgs = {
+            where: whereTypeName,
+            limit: features?.limitRequired ? new GraphQLNonNull(GraphQLInt) : GraphQLInt,
+            offset: GraphQLInt,
+        };
+        if (!(relationshipTarget instanceof UnionEntityAdapter)) {
+            const sortConfig = makeSortInput({
+                entityAdapter: relationshipTarget,
+                userDefinedFieldDirectives: new Map(),
+                composer,
+            });
+            if (sortConfig) {
+                nodeFieldsArgs["sort"] = sortConfig.NonNull.List;
+            }
+        }
+
+        relationshipField.args = nodeFieldsArgs;
+    }
+
+    if (relationshipAdapter.isReadable()) {
+        fields[relationshipAdapter.name] = relationshipField;
+    }
+    return fields;
+}
+
+export function augmentObjectOrInterfaceTypeWithConnectionField(
+    relationshipAdapter: RelationshipAdapter | RelationshipDeclarationAdapter,
+    userDefinedFieldDirectives: Map<string, DirectiveNode[]>,
+    schemaComposer: SchemaComposer,
+    features: Neo4jFeaturesSettings | undefined
+): Record<string, { type: string; description?: string; directives: Directive[]; args?: any }> {
+    const fields = {};
+    const deprecatedDirectives = graphqlDirectivesToCompose(
+        (userDefinedFieldDirectives.get(relationshipAdapter.name) || []).filter(
+            (directive) => directive.name.value === DEPRECATED
+        )
+    );
+    const composeNodeArgs: ObjectTypeComposerArgumentConfigMapDefinition = {
+        where: makeConnectionWhereInputType({
+            relationshipAdapter,
+            composer: schemaComposer,
+        }),
+        first: {
+            type: features?.limitRequired ? new GraphQLNonNull(GraphQLInt) : GraphQLInt,
+        },
+        after: {
+            type: GraphQLString,
+        },
+    };
+    const connectionSortITC = withConnectionSortInputType({
+        relationshipAdapter,
+        composer: schemaComposer,
+    });
+    if (connectionSortITC) {
+        composeNodeArgs.sort = connectionSortITC.NonNull.List;
+    }
+    const isTargetUnion = relationshipAdapter.target instanceof UnionEntityAdapter;
+    const isSourceInterface = relationshipAdapter.source instanceof InterfaceEntityAdapter;
+
+    if (relationshipAdapter.isReadable() || (relationshipAdapter.aggregate && !isTargetUnion && !isSourceInterface)) {
+        fields[relationshipAdapter.operations.connectionFieldName] = {
+            type: withConnectionObjectType({
+                relationshipAdapter,
+                composer: schemaComposer,
+            }).NonNull,
+            args: composeNodeArgs,
+            directives: deprecatedDirectives,
+            resolve: (source: any, args: ConnectionQueryArgs, _ctx: any, info: GraphQLResolveInfo) => {
+                return connectionFieldResolver({
+                    connectionFieldName: relationshipAdapter.operations.connectionFieldName,
+                args,
+                    info,
+                    source,
+                });
+            },
+        };
+    }
+    return fields;
+}
